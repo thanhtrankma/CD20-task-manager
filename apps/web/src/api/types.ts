@@ -1,0 +1,110 @@
+export type Role = 'ADMIN' | 'LEADER' | 'UNIT_HEAD' | 'STAFF';
+export type TaskStatus = 'NEW' | 'IN_PROGRESS' | 'PENDING_REVIEW' | 'RETURNED' | 'DONE' | 'CANCELLED';
+export type Priority = 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+
+export interface Me {
+  id: number;
+  username: string;
+  fullName: string;
+  role: Role;
+  unitId: number;
+  unit: { id: number; name: string };
+  mustChangePassword: boolean;
+  totpEnabled: boolean;
+}
+
+export interface Unit {
+  id: number;
+  code: string;
+  name: string;
+  parentId: number | null;
+  isActive: boolean;
+}
+
+export interface UserRow {
+  id: number;
+  username: string;
+  fullName: string;
+  rank: string | null;
+  position: string | null;
+  role: Role;
+  unitId: number;
+  isActive: boolean;
+  totpEnabled: boolean;
+  lastLoginAt: string | null;
+  unit: { id: number; name: string };
+}
+
+interface Person {
+  id: number;
+  fullName: string;
+}
+
+export interface Assignee {
+  id: number;
+  role: 'LEAD' | 'SUPPORT';
+  user: Person | null;
+  unit: { id: number; name: string } | null;
+}
+
+export interface TaskRow {
+  id: number;
+  title: string;
+  dueDate: string;
+  priority: Priority;
+  status: TaskStatus;
+  progress: number;
+  overdue: boolean;
+  createdBy: Person;
+  assignees: Assignee[];
+}
+
+export interface FileRef {
+  id: number;
+  originalName: string;
+  size: number;
+}
+
+export interface TaskDetail extends TaskRow {
+  description: string | null;
+  createdAt: string;
+  parent: { id: number; title: string } | null;
+  children: Pick<TaskRow, 'id' | 'title' | 'status' | 'dueDate' | 'progress'>[];
+  updates: { id: number; progress: number; note: string | null; createdAt: string; user: Person }[];
+  submissions: {
+    id: number;
+    content: string;
+    status: 'PENDING' | 'APPROVED' | 'RETURNED';
+    reviewNote: string | null;
+    createdAt: string;
+    submittedBy: Person;
+    reviewer: Person | null;
+    attachments: FileRef[];
+  }[];
+  attachments: FileRef[];
+  comments: { id: number; content: string; createdAt: string; user: Person }[];
+  permissions: { manage: boolean; work: boolean };
+}
+
+export interface Paged<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface Notification {
+  id: number;
+  title: string;
+  body: string | null;
+  link: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface DashboardSummary {
+  byStatus: Partial<Record<TaskStatus, number>>;
+  overdue: number;
+  dueSoon: number;
+  byUnit: { unitId: number; name: string; total: number; done: number; overdue: number }[];
+}

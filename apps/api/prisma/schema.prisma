@@ -1,0 +1,293 @@
+// Schema CSDL phần mềm quản lý giao việc.
+// Thay đổi cấu trúc: sửa file này rồi chạy `npm run prisma:migrate -- --name <ten-thay-doi>`.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+// Chuỗi kết nối nằm trong prisma.config.ts (Prisma 7).
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN // Quản trị hệ thống: quản lý tài khoản, đơn vị; không xem nội dung công việc
+  LEADER // Ban Giám hiệu: toàn trường
+  UNIT_HEAD // Chỉ huy đơn vị: đơn vị mình và đơn vị trực thuộc
+  STAFF // Cán bộ, giảng viên: việc được giao cho mình
+}
+
+enum TaskStatus {
+  NEW
+  IN_PROGRESS
+  PENDING_REVIEW
+  RETURNED
+  DONE
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum AssigneeRole {
+  LEAD // Chủ trì
+  SUPPORT // Phối hợp
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  RETURNED
+}
+
+enum ExtensionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Unit {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  name      String
+  parentId  Int?     @map("parent_id")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  parent      Unit?          @relation("UnitTree", fields: [parentId], references: [id])
+  children    Unit[]         @relation("UnitTree")
+  users       User[]
+  assignments TaskAssignee[]
+
+  @@map("units")
+}
+
+model User {
+  id                 Int       @id @default(autoincrement())
+  username           String    @unique
+  fullName           String    @map("full_name")
+  rank               String? // Cấp bậc
+  position           String? // Chức vụ
+  unitId             Int       @map("unit_id")
+  role               Role      @default(STAFF)
+  passwordHash       String    @map("password_hash")
+  mustChangePassword Boolean   @default(true) @map("must_change_password")
+  totpSecret         String?   @map("totp_secret")
+  totpEnabled        Boolean   @default(false) @map("totp_enabled")
+  failedLogins       Int       @default(0) @map("failed_logins")
+  lockedUntil        DateTime? @map("locked_until")
+  isActive           Boolean   @default(true) @map("is_active")
+  lastLoginAt        DateTime? @map("last_login_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  unit               Unit               @relation(fields: [unitId], references: [id])
+  sessions           Session[]
+  createdTasks       Task[]             @relation("TaskCreator")
+  assignments        TaskAssignee[]
+  taskUpdates        TaskUpdate[]
+  submissions        Submission[]       @relation("Submitter")
+  reviews            Submission[]       @relation("Reviewer")
+  extensionRequests  ExtensionRequest[] @relation("Requester")
+  extensionDecisions ExtensionRequest[] @relation("Decider")
+  attachments        Attachment[]
+  comments           Comment[]
+  notifications      Notification[]
+  auditLogs          AuditLog[]
+
+  @@index([unitId])
+  @@map("users")
+}
+
+// Phiên đăng nhập. `id` là SHA-256 của token trong cookie; token gốc không lưu trong CSDL.
+model Session {
+  id        String   @id
+  userId    Int      @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  ip        String?
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model Task {
+  id          Int        @id @default(autoincrement())
+  title       String
+  description String?    @db.Text
+  createdById Int        @map("created_by_id")
+  dueDate     DateTime   @map("due_date")
+  priority    Priority   @default(NORMAL)
+  status      TaskStatus @default(NEW)
+  progress    Int        @default(0) // 0–100
+  parentId    Int?       @map("parent_id")
+  completedAt DateTime?  @map("completed_at")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  createdBy         User               @relation("TaskCreator", fields: [createdById], references: [id])
+  parent            Task?              @relation("Subtasks", fields: [parentId], references: [id])
+  children          Task[]             @relation("Subtasks")
+  assignees         TaskAssignee[]
+  updates           TaskUpdate[]
+  submissions       Submission[]
+  extensionRequests ExtensionRequest[]
+  attachments       Attachment[]
+  comments          Comment[]
+
+  @@index([status])
+  @@index([dueDate])
+  @@index([createdById])
+  @@map("tasks")
+}
+
+// Người nhận việc: hoặc một cá nhân (userId), hoặc một đơn vị (unitId).
+model TaskAssignee {
+  id     Int          @id @default(autoincrement())
+  taskId Int          @map("task_id")
+  userId Int?         @map("user_id")
+  unitId Int?         @map("unit_id")
+  role   AssigneeRole @default(LEAD)
+
+  task Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id])
+  unit Unit? @relation(fields: [unitId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
+  @@index([unitId])
+  @@map("task_assignees")
+}
+
+model TaskUpdate {
+  id        Int      @id @default(autoincrement())
+  taskId    Int      @map("task_id")
+  userId    Int      @map("user_id")
+  progress  Int
+  note      String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@map("task_updates")
+}
+
+model Submission {
+  id            Int          @id @default(autoincrement())
+  taskId        Int          @map("task_id")
+  submittedById Int          @map("submitted_by_id")
+  content       String       @db.Text
+  status        ReviewStatus @default(PENDING)
+  reviewerId    Int?         @map("reviewer_id")
+  reviewNote    String?      @map("review_note") @db.Text
+  reviewedAt    DateTime?    @map("reviewed_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  task        Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  submittedBy User         @relation("Submitter", fields: [submittedById], references: [id])
+  reviewer    User?        @relation("Reviewer", fields: [reviewerId], references: [id])
+  attachments Attachment[]
+
+  @@index([taskId])
+  @@map("submissions")
+}
+
+model ExtensionRequest {
+  id            Int             @id @default(autoincrement())
+  taskId        Int             @map("task_id")
+  requestedById Int             @map("requested_by_id")
+  newDueDate    DateTime        @map("new_due_date")
+  reason        String          @db.Text
+  status        ExtensionStatus @default(PENDING)
+  decidedById   Int?            @map("decided_by_id")
+  decidedAt     DateTime?       @map("decided_at")
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  task        Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  requestedBy User  @relation("Requester", fields: [requestedById], references: [id])
+  decidedBy   User? @relation("Decider", fields: [decidedById], references: [id])
+
+  @@index([taskId])
+  @@map("extension_requests")
+}
+
+model Attachment {
+  id           Int      @id @default(autoincrement())
+  taskId       Int?     @map("task_id")
+  submissionId Int?     @map("submission_id")
+  uploadedById Int      @map("uploaded_by_id")
+  originalName String   @map("original_name")
+  storedName   String   @unique @map("stored_name") // Tên ngẫu nhiên trên đĩa
+  mimeType     String   @map("mime_type")
+  size         Int
+  sha256       String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  task       Task?       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  submission Submission? @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  uploadedBy User        @relation(fields: [uploadedById], references: [id])
+
+  @@index([taskId])
+  @@index([submissionId])
+  @@map("attachments")
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  taskId    Int      @map("task_id")
+  userId    Int      @map("user_id")
+  content   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@map("comments")
+}
+
+model Notification {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  title     String
+  body      String?
+  link      String?
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+// Nhật ký thao tác: chỉ ghi thêm. Giai đoạn 2 sẽ thêm trigger chặn UPDATE/DELETE.
+model AuditLog {
+  id        BigInt   @id @default(autoincrement())
+  userId    Int?     @map("user_id")
+  action    String
+  entity    String?
+  entityId  String?  @map("entity_id")
+  ip        String?
+  userAgent String?  @map("user_agent")
+  detail    Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userId])
+  @@map("audit_logs")
+}

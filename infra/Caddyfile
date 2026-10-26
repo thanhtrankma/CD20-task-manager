@@ -1,0 +1,41 @@
+# SITE_ADDRESS (infra/.env):
+#   - Có tên miền trỏ về VPS:  giaoviec.ten-truong.edu.vn  → Caddy tự cấp chứng chỉ HTTPS
+#   - Chạy nội bộ LAN, chưa có tên miền:  https://192.168.1.10  kèm dòng `tls internal` bên dưới
+{$SITE_ADDRESS} {
+	# tls internal
+
+	encode zstd gzip
+
+	# Lớn hơn giới hạn tệp của API (MAX_UPLOAD_MB) một chút
+	request_body {
+		max_size 25MB
+	}
+
+	handle /api/* {
+		reverse_proxy api:3000
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# Ant Design chèn style lúc chạy nên cần 'unsafe-inline' cho style-src
+		Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+		-Server
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 50MiB
+			roll_keep 10
+		}
+	}
+}

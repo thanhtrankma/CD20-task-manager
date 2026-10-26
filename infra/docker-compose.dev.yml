@@ -1,0 +1,19 @@
+# Chỉ dùng khi phát triển: chạy PostgreSQL, chỉ mở cổng trên máy cá nhân (127.0.0.1).
+#   docker compose -f infra/docker-compose.dev.yml up -d
+name: task-manager-dev
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: taskmanager
+      POSTGRES_USER: taskmanager
+      POSTGRES_PASSWORD: taskmanager_dev
+    ports:
+      # Cổng 5432 đã bận thì chạy: DEV_DB_PORT=55432 docker compose ... và sửa DATABASE_URL tương ứng
+      - "127.0.0.1:${DEV_DB_PORT:-5432}:5432"
+    volumes:
+      - dev-db-data:/var/lib/postgresql/data
+
+volumes:
+  dev-db-data:

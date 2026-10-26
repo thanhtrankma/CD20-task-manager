@@ -1,0 +1,69 @@
+# Triển khai production. Chạy trong thư mục infra/:
+#   cp .env.example .env   # điền giá trị
+#   docker compose up -d --build
+#   docker compose exec api node dist/cli/seed.js   # lần đầu: tạo tài khoản quản trị
+name: task-manager
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: taskmanager
+      POSTGRES_USER: taskmanager
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Cần đặt POSTGRES_PASSWORD trong infra/.env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskmanager -d taskmanager"]
+      interval: 10s
+      retries: 5
+    networks: [backend]
+    # Không mở cổng ra ngoài: chỉ API kết nối được qua mạng nội bộ "backend".
+
+  api:
+    build: ../apps/api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://taskmanager:${POSTGRES_PASSWORD}@db:5432/taskmanager
+      APP_ORIGIN: ${APP_ORIGIN:?Cần đặt APP_ORIGIN trong infra/.env}
+      APP_SECRET: ${APP_SECRET:?Cần đặt APP_SECRET trong infra/.env}
+      COOKIE_SECURE: "true"
+      SESSION_TTL_HOURS: ${SESSION_TTL_HOURS:-8}
+      UPLOAD_DIR: /data/uploads
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-20}
+      TZ: Asia/Ho_Chi_Minh
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [backend, frontend]
+
+  web:
+    build: ../apps/web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?Cần đặt SITE_ADDRESS trong infra/.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [api]
+    networks: [frontend]
+
+networks:
+  backend:
+    internal: true
+  frontend: {}
+
+volumes:
+  db-data:
+  uploads:
+  caddy-data:
+  caddy-config:
