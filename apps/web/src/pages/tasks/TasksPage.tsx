@@ -165,7 +165,8 @@ async function exportTasks(view: Exclude<View, 'todo'>, status?: TaskStatus, q?:
   const items: Row[] = [];
   for (let page = 1; page <= 20; page++) {
     const r = await api.get<Paged<Row>>(
-      `/tasks${toQuery({ view: view === 'all' ? undefined : view, status, q, page, pageSize: 100 })}`,
+      // export=1: máy chủ ghi nhật ký lượt xuất.
+      `/tasks${toQuery({ view: view === 'all' ? undefined : view, status, q, page, pageSize: 100, export: '1' })}`,
     );
     items.push(...r.items);
     if (items.length >= r.total) break;

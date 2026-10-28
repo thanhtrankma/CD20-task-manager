@@ -24,6 +24,8 @@ const ACTION_LABEL: Record<string, string> = {
   LOGIN_FAILED: 'Đăng nhập sai',
   LOGIN_FAILED_LOCKED: 'Đăng nhập sai, khóa tài khoản',
   LOGIN_LOCKED: 'Đăng nhập khi đang bị khóa',
+  EXPORT_TASKS: 'Xuất Excel danh sách nhiệm vụ',
+  EXPORT_REPORT: 'Xuất Excel thống kê',
 };
 const FAILED = new Set(['LOGIN_FAILED', 'LOGIN_FAILED_LOCKED', 'LOGIN_LOCKED']);
 

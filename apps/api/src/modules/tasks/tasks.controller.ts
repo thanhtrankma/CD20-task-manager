@@ -1,4 +1,7 @@
-import { Body, Controller, Get, HttpCode, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseIntPipe, Patch, Post, Query, Req } from '@nestjs/common';
+import type { Request } from 'express';
+import { requestMeta } from '../../common/origin-check';
+import { AuditService } from '../audit/audit.service';
 import { CurrentUser, Roles } from '../../common/decorators';
 import type { AuthUser } from '../../common/types';
 import {
@@ -16,11 +19,25 @@ import { TasksService } from './tasks.service';
 @Controller('tasks')
 @Roles('LEADER', 'UNIT_HEAD', 'STAFF')
 export class TasksController {
-  constructor(private readonly tasks: TasksService) {}
+  constructor(
+    private readonly tasks: TasksService,
+    private readonly audit: AuditService,
+  ) {}
 
   @Get()
-  list(@CurrentUser() user: AuthUser, @Query() query: ListTasksQuery) {
-    return this.tasks.list(user, query);
+  async list(@CurrentUser() user: AuthUser, @Query() query: ListTasksQuery, @Req() req: Request) {
+    const result = await this.tasks.list(user, query);
+    // Xuất danh sách ra Excel là đưa dữ liệu ra khỏi hệ thống: ghi nhật ký (chỉ trang đầu của lượt xuất).
+    if (query.export && query.page === 1) {
+      await this.audit.log({
+        userId: user.id,
+        action: 'EXPORT_TASKS',
+        entity: 'Tasks',
+        detail: { view: query.view ?? 'all', status: query.status, q: query.q, total: result.total },
+        ...requestMeta(req),
+      });
+    }
+    return result;
   }
 
   @Get('todo')

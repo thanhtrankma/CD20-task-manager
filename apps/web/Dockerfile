@@ -6,5 +6,5 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM caddy:2-alpine
+FROM caddy:2.11-alpine
 COPY --from=build /app/dist /srv

@@ -1,0 +1,26 @@
+# Giám sát bằng Uptime Kuma. NÊN chạy trên máy khác với VPS của hệ thống (vd. máy chủ tại trường),
+# để khi VPS ngừng hoạt động vẫn có cảnh báo. Chạy:
+#   cd infra/monitoring && docker compose up -d
+# Mở http://<máy-giám-sát>:3001 (chỉ trong mạng nội bộ / VPN), tạo tài khoản quản trị Uptime Kuma, rồi thêm:
+#   - Monitor "HTTP(s)": https://<tên-miền>/api/health, chu kỳ 60 giây (API và CSDL còn chạy)
+#   - Monitor "Push": dán URL push vào KUMA_PUSH_URL của infra/scripts/check-health.sh trên VPS
+#     (ổ đĩa, bản sao lưu, hạn chứng chỉ HTTPS)
+#   - Kênh cảnh báo: thư điện tử nội bộ hoặc kênh khác được phép
+name: task-manager-monitoring
+
+services:
+  uptime-kuma:
+    image: louislam/uptime-kuma:2
+    restart: unless-stopped
+    ports:
+      # Chỉ mở trong mạng nội bộ / VPN; không mở ra Internet.
+      - "${KUMA_BIND:-127.0.0.1}:3001:3001"
+    volumes:
+      - kuma-data:/app/data
+    security_opt: ["no-new-privileges:true"]
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  kuma-data:

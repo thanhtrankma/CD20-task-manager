@@ -116,15 +116,22 @@ dụng khác: xem [docs/tham-khao-ung-dung-giao-viec.md](docs/tham-khao-ung-dung
 
 ## Giai đoạn C: Triển khai thử trên máy chủ thật (Tuần 7 – 8)
 
-Mục tiêu: hệ thống chạy trên VPS, an toàn, có sao lưu và giám sát.
+Mục tiêu: hệ thống chạy trên VPS, an toàn, có sao lưu và giám sát. Phần chuẩn bị đã làm, đã diễn tập trên máy thử
+(28/10/2026); còn lại là các việc cần máy chủ thật.
 
-- [ ] **C1. Chuẩn bị máy chủ**: thuê VPS, cập nhật hệ điều hành, tường lửa chỉ mở 80/443, SSH qua WireGuard và khóa
-- [ ] **C2. Triển khai** bằng Docker Compose; HTTPS; cấu hình VAPID, máy chủ thư nội bộ (SMTP)
-- [ ] **C3. Sao lưu tự động** hằng ngày ra ổ ngoài/máy khác; **thử khôi phục thực tế** trên máy thử
-- [ ] **C4. Giám sát**: Uptime Kuma báo khi hệ thống ngừng hoạt động, ổ đĩa đầy, chứng chỉ sắp hết hạn
-- [ ] **C5. Rà soát bảo mật**: quét OWASP ZAP; kiểm tra phân quyền từng API; khắc phục lỗ hổng
-- [ ] **C6. Tài liệu vận hành** (`docs/van-hanh.md`): khởi động lại, cập nhật, sao lưu, khôi phục, xử lý sự cố
-- [ ] 🧾 **C7. Hoàn thiện hồ sơ đề xuất cấp độ** (mô tả hệ thống, sơ đồ mạng, phương án bảo đảm an toàn) và gửi thẩm định
+- [~] **C1. Chuẩn bị máy chủ**: script `infra/scripts/setup-server.sh` (Ubuntu 24.04: tài khoản quản trị dùng khóa SSH,
+      tắt root, tường lửa chỉ mở 80/443/VPN, fail2ban, tự cập nhật bản vá, Docker, WireGuard). 🧾 Còn: thuê VPS, chạy script
+- [~] **C2. Triển khai** bằng Docker Compose: đã chạy thử bộ production trên máy thử (HTTPS, migration tự chạy, container
+      chỉ đọc, bỏ quyền hệ thống, cookie Secure; sửa lỗi CSP chặn phông chữ). Caddy hỗ trợ cả tên miền và chế độ mạng nội bộ
+      (`CADDY_TLS=tls internal`). 🧾 Còn: tên miền, VAPID, máy chủ thư nội bộ trên máy thật
+- [~] **C3. Sao lưu tự động**: đã diễn tập sao lưu, khôi phục thật (dữ liệu, tệp đính kèm về đủ, mã băm khớp); sửa 2 lỗi của
+      script khôi phục. 🧾 Còn: chọn nơi đặt kho sao lưu ngoài VPS, cài cron
+- [~] **C4. Giám sát**: Uptime Kuma (`infra/monitoring/`, chạy trên máy khác) + `check-health.sh` (API, ổ đĩa, sao lưu,
+      chứng chỉ). 🧾 Còn: chọn máy giám sát, kênh cảnh báo
+- [~] **C5. Rà soát bảo mật**: quét OWASP ZAP trên bản triển khai thử; ghi nhật ký khi xuất Excel. Còn: quét lại trên máy thật
+- [x] **C6. Tài liệu vận hành** (`docs/van-hanh.md`): triển khai, sao lưu, khôi phục, cập nhật, giám sát, sự cố, việc định kỳ
+- [~] 🧾 **C7. Hồ sơ đề xuất cấp độ**: dự thảo thuyết minh `docs/ho-so-cap-do-du-thao.md` (đề xuất cấp độ 2, đối chiếu
+      biện pháp theo nhóm yêu cầu quản lý, kỹ thuật). Còn: điền thông tin ☐, theo mẫu của cơ quan thẩm định, gửi thẩm định
 
 ## Giai đoạn D: Thí điểm với 20 đầu mối (Tuần 9 – 10)
 

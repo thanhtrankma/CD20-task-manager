@@ -2,6 +2,8 @@
 
 Phần mềm nội bộ của Nhà trường. Lộ trình phát triển: xem [roadmap.md](roadmap.md).
 Hướng dẫn sử dụng theo vai trò: [docs/huong-dan-su-dung.md](docs/huong-dan-su-dung.md).
+Vận hành (triển khai, sao lưu, khôi phục, giám sát, sự cố): [docs/van-hanh.md](docs/van-hanh.md).
+Dự thảo hồ sơ cấp độ: [docs/ho-so-cap-do-du-thao.md](docs/ho-so-cap-do-du-thao.md).
 
 > **Không soạn thảo, lưu trữ, truyền đưa thông tin thuộc bí mật nhà nước trên hệ thống này.**
 
@@ -71,18 +73,17 @@ Ghi chú Prisma 7: chuỗi kết nối khai báo trong `apps/api/prisma.config.t
 
 ## Triển khai lên VPS
 
-1. Chuẩn bị máy chủ: cập nhật hệ điều hành, tạo user riêng, cài Docker, WireGuard.
-   Tường lửa chỉ mở 80, 443 (và cổng WireGuard). SSH chỉ cho phép qua VPN, đăng nhập bằng khóa.
-2. Đưa mã nguồn lên máy chủ (git clone từ kho nội bộ), ví dụ `/opt/task-manager`.
-3. Cấu hình và chạy:
-   ```bash
-   cd /opt/task-manager/infra
-   cp .env.example .env && chmod 600 .env   # điền giá trị
-   docker compose up -d --build
-   docker compose exec api node dist/cli/seed.js   # tạo tài khoản quản trị lần đầu
-   ```
-4. Cài lịch sao lưu theo hướng dẫn trong `infra/scripts/backup.sh`, **thử khôi phục** bằng `restore.sh` trên máy thử.
-5. Cập nhật phiên bản mới: `git pull && docker compose up -d --build` (migration chạy tự động khi API khởi động).
+Chi tiết từng bước: [docs/van-hanh.md](docs/van-hanh.md). Tóm tắt:
+
+1. Chuẩn bị VPS Ubuntu 24.04: `infra/scripts/setup-server.sh` (tài khoản quản trị dùng khóa SSH, tường lửa, fail2ban,
+   tự cập nhật bản vá, Docker, WireGuard); cấu hình WireGuard rồi đóng SSH ra Internet.
+2. `git clone` vào `/opt/task-manager`; `cp infra/.env.example infra/.env && chmod 600 infra/.env`, điền giá trị.
+3. `cd infra && docker compose up -d --build` (migration tự chạy); `docker compose exec api node dist/cli/seed.js`.
+4. Sao lưu hằng ngày: `infra/scripts/backup.sh` (restic, kho ngoài VPS); khôi phục: `infra/scripts/restore.sh`.
+5. Giám sát: Uptime Kuma (`infra/monitoring/`, chạy trên máy khác) + `infra/scripts/check-health.sh` (cron).
+6. Cập nhật: `git pull && docker compose up -d --build --pull always`.
+
+Máy chủ tại trường, chỉ mạng nội bộ: `SITE_ADDRESS=https://<IP>`, `CADDY_TLS=tls internal`.
 
 ## Nhắc việc (thông báo đẩy, thư điện tử)
 

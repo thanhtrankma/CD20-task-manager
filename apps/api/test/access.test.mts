@@ -94,6 +94,11 @@ describe('Chống tấn công', () => {
     assert.equal((await s.patch('/auth/profile', { email: null, role: 'LEADER' })).status, 400);
   });
 
+  test('phản hồi API không được lưu đệm (máy dùng chung)', async () => {
+    const res = await (await staff()).get('/tasks');
+    assert.equal(res.headers.get('cache-control'), 'no-store');
+  });
+
   test('tham số không hợp lệ → 400, không lỗi máy chủ', async () => {
     const s = await leader();
     assert.equal((await s.get('/tasks/abc')).status, 400);

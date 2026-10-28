@@ -9,4 +9,8 @@ export default defineConfig({
     // API_PORT: đổi khi cổng 3000 đã bị dự án khác dùng (vd. API_PORT=3100 npm run dev).
     proxy: { '/api': `http://localhost:${process.env.API_PORT ?? 3000}` },
   },
+  build: {
+    // Không nhúng phông chữ vào CSS dạng data: (CSP production chỉ cho tải phông từ chính máy chủ: default-src 'self').
+    assetsInlineLimit: (file) => (/\.(woff2?|ttf|otf)$/.test(file) ? false : undefined),
+  },
 });

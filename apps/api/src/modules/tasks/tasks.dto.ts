@@ -64,6 +64,8 @@ export class ListTasksQuery {
   @IsOptional() @IsIn(TASK_VIEWS) view?: TaskView;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 20;
+  /** Đang xuất Excel: ghi nhật ký (giao diện gửi kèm khi tải trang đầu của lượt xuất). */
+  @IsOptional() @IsIn(['1']) export?: '1';
 }
 
 export class ProgressDto {

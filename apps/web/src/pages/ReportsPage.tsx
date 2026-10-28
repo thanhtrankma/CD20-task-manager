@@ -93,12 +93,13 @@ export function ReportsPage() {
   const periodLabel = `${from.format('DD/MM/YYYY')} – ${to.format('DD/MM/YYYY')}`;
   const maxMonth = Math.max(1, ...(data?.byMonth.map((m) => m.total) ?? [1]));
 
-  const exportExcel = () => {
-    if (!data) return;
+  const exportExcel = async () => {
+    // Lấy lại số liệu kèm export=1 để máy chủ ghi nhật ký lượt xuất.
+    const data = await api.get<Report>(`/dashboard/report${toQuery({ ...params, export: '1' })}`);
     const counts = (c: ReportCounts) => [c.total, ...GROUPS.map((g) => c[g.key]), c.onTimeRate ?? ''];
     const head = ['Tổng', ...GROUPS.map((g) => g.label), 'Tỷ lệ đúng hạn (%)'];
     const w = [10, 16, 16, 16, 16, 14];
-    void downloadXlsx(`thong-ke-${from.format('YYYYMMDD')}-${to.format('YYYYMMDD')}.xlsx`, [
+    await downloadXlsx(`thong-ke-${from.format('YYYYMMDD')}-${to.format('YYYYMMDD')}.xlsx`, [
       {
         name: 'Tổng hợp',
         data: [
@@ -137,7 +138,7 @@ export function ReportsPage() {
         title="Thống kê"
         subtitle={`Kết quả thực hiện nhiệm vụ có hạn trong kỳ ${periodLabel}`}
         actions={
-          <Button icon={<Download size={16} />} onClick={exportExcel} disabled={!data}>
+          <Button icon={<Download size={16} />} onClick={() => void exportExcel()} disabled={!data}>
             <span className="hide-xs">Xuất Excel</span>
           </Button>
         }

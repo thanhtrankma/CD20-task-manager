@@ -16,6 +16,11 @@ async function bootstrap() {
   app.use(helmet());
   app.use(cookieParser());
   app.use(originCheck(env.appOrigin));
+  // Phản hồi API chứa dữ liệu nhiệm vụ, cá nhân: không cho trình duyệt, proxy lưu đệm (máy dùng chung).
+  app.use((_req: unknown, res: { setHeader(k: string, v: string): void }, next: () => void) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+  });
 
   app.setGlobalPrefix('api');
   app.useGlobalPipes(

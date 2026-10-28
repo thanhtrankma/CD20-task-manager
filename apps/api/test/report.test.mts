@@ -1,7 +1,7 @@
 // Thống kê 4 nhóm (lộ trình B16). Dùng kỳ riêng năm 2025 để không lẫn nhiệm vụ của các file kiểm thử khác.
 import assert from 'node:assert/strict';
 import { after, before, describe, test } from 'node:test';
-import { closeDb, createTask, head, leader, otherStaff, sql, staff, unitId } from './helpers.mts';
+import { closeDb, createTask, head, leader, otherStaff, sql, staff, unitId, userId } from './helpers.mts';
 
 after(closeDb);
 
@@ -81,5 +81,19 @@ describe('Thống kê kết quả thực hiện nhiệm vụ', () => {
     assert.equal((await l.get(q(TO, FROM))).status, 400);
     assert.equal((await l.get(q('2024-01-01T00:00:00Z', '2025-12-31T00:00:00Z'))).status, 400);
     assert.equal((await l.get('/dashboard/report?from=abc&to=xyz')).status, 400);
+  });
+});
+
+describe('Ghi nhật ký khi xuất Excel', () => {
+  test('xuất thống kê, xuất danh sách nhiệm vụ được ghi lại (ai, bộ lọc)', async () => {
+    const l = await leader();
+    assert.equal((await l.get(`${q()}&export=1`)).status, 200);
+    assert.equal((await l.get('/tasks?view=created&page=1&pageSize=100&export=1')).status, 200);
+    assert.equal((await l.get('/tasks?view=created&page=2&pageSize=100&export=1')).status, 200);
+    const id = await userId('lanhdao');
+    const rows = await sql(`select action, detail from audit_logs where user_id = $1 and action like 'EXPORT_%' order by id`, [id]);
+    assert.deepEqual(rows.map((r) => r.action), ['EXPORT_REPORT', 'EXPORT_TASKS'], 'mỗi lượt xuất chỉ ghi một dòng');
+    assert.equal(rows[1].detail.view, 'created');
+    assert.equal((await l.get('/tasks?export=yes')).status, 400);
   });
 });

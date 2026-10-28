@@ -21,9 +21,15 @@ SRC="$TARGET$STAGING"
 read -r -p "Ghi đè toàn bộ dữ liệu hiện tại bằng bản sao lưu '$SNAPSHOT'? Gõ YES để tiếp tục: " answer
 [ "$answer" = "YES" ] || { echo "Đã hủy"; exit 1; }
 
+EXPECTED=$(ls "$SRC/uploads" 2>/dev/null | wc -l | tr -d ' ')
+
 docker compose stop api
 docker compose exec -T db pg_restore -U taskmanager -d taskmanager --clean --if-exists --no-owner < "$SRC/db.dump"
-docker compose run --rm --no-deps -v "$SRC/uploads:/restore:ro" --entrypoint sh api \
-  -c 'rm -rf /data/uploads/* && cp -a /restore/. /data/uploads/'
+# Chép tệp đính kèm qua luồng tar (không gắn thư mục máy chủ vào container, không đổi chủ sở hữu tệp:
+# container API chạy không có quyền hệ thống).
+COPYFILE_DISABLE=1 tar -C "$SRC/uploads" -cf - . | docker compose run --rm -T --no-deps --entrypoint sh api \
+  -c 'rm -rf /data/uploads/* && tar -C /data/uploads -xf - -o'
+RESTORED=$(docker compose run --rm -T --no-deps --entrypoint sh api -c 'ls /data/uploads | wc -l' | tr -d ' \r')
 docker compose start api
-echo "Khôi phục xong"
+[ "$RESTORED" = "$EXPECTED" ] || { echo "LỖI: khôi phục được $RESTORED/$EXPECTED tệp đính kèm"; exit 1; }
+echo "Khôi phục xong: CSDL và $RESTORED tệp đính kèm"
