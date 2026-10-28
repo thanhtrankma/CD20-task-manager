@@ -38,10 +38,10 @@ export const DUE_TONE: Record<DueTone, Omit<Tone, 'label'>> = {
 export const TODO_REASON: Record<TodoReason, string> = {
   overdue: 'Quá hạn',
   today: 'Đến hạn hôm nay',
-  review: 'Chờ đồng chí duyệt',
+  review: 'Chờ đồng chí duyệt, xem xét',
   returned: 'Bị trả lại, cần làm tiếp',
   soon: 'Sắp đến hạn (3 ngày)',
-  new: 'Mới được giao',
+  new: 'Mới được giao, chưa xác nhận nhận',
 };
 
 export const ROLE: Record<Role, string> = {

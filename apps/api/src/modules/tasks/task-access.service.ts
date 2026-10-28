@@ -31,13 +31,20 @@ export class TaskAccessService {
           OR: [
             { createdById: user.id },
             { assignees: { some: { userId: user.id } } },
+            { followers: { some: { userId: user.id } } },
             { assignees: { some: { unitId: { in: unitIds } } } },
             { assignees: { some: { user: { unitId: { in: unitIds } } } } },
           ],
         };
       }
       case 'STAFF':
-        return { OR: [{ createdById: user.id }, { assignees: { some: { userId: user.id } } }] };
+        return {
+          OR: [
+            { createdById: user.id },
+            { assignees: { some: { userId: user.id } } },
+            { followers: { some: { userId: user.id } } },
+          ],
+        };
       default:
         throw new ForbiddenException('Tài khoản quản trị không truy cập nội dung công việc');
     }
@@ -96,6 +103,21 @@ export class TaskAccessService {
       users.every((u) => unitIds.includes(u.unitId)) &&
       targets.every((t) => !t.unitId || unitIds.includes(t.unitId));
     if (!ok) throw new ForbiddenException('Chỉ được giao việc trong phạm vi đơn vị mình');
+  }
+
+  /** Người theo dõi nhiệm vụ (nhận thông báo khi nộp, duyệt, đổi hạn, hủy). */
+  async followerIds(taskId: number): Promise<number[]> {
+    const rows = await this.prisma.taskFollower.findMany({ where: { taskId }, select: { userId: true } });
+    return rows.map((r) => r.userId);
+  }
+
+  /** Dòng người được giao mà người dùng là người thực hiện (trực tiếp, hoặc chỉ huy đơn vị được giao). */
+  async workAssigneeIds(user: AuthUser, taskId: number): Promise<number[]> {
+    const assignees = await this.prisma.taskAssignee.findMany({ where: { taskId } });
+    const unitIds = user.role === 'UNIT_HEAD' ? await this.units.descendantIds(user.unitId) : [];
+    return assignees
+      .filter((a) => a.userId === user.id || (a.unitId !== null && unitIds.includes(a.unitId)))
+      .map((a) => a.id);
   }
 
   /** Người nhận thông báo của một công việc: cá nhân được giao + chỉ huy các đơn vị được giao. */

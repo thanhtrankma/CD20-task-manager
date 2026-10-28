@@ -15,8 +15,8 @@ export const assigneeLabel = (a: Assignee) => a.unit?.name ?? a.user?.fullName ?
 const leads = (t: TaskRow) => t.assignees.filter((a) => a.role === 'LEAD').map(assigneeLabel).join(', ');
 
 /** Các mục của "Việc của tôi". "all": mọi việc trong phạm vi được xem (đơn vị, toàn trường). */
-type View = 'todo' | 'assigned' | 'created' | 'review' | 'all';
-const VIEWS: View[] = ['todo', 'assigned', 'created', 'review', 'all'];
+type View = 'todo' | 'assigned' | 'created' | 'review' | 'following' | 'all';
+const VIEWS: View[] = ['todo', 'assigned', 'created', 'review', 'following', 'all'];
 
 export function useTaskCounts(enabled = true) {
   return useQuery({
@@ -46,9 +46,11 @@ export function TasksPage() {
       ? [
           { key: 'created', label: `Đã giao${n(counts.data?.created)}` },
           { key: 'review', label: `Chờ duyệt${n(counts.data?.review)}` },
-          { key: 'all', label: me?.role === 'LEADER' ? 'Toàn trường' : 'Đơn vị' },
         ]
       : []),
+    // Cán bộ thường chỉ hiện mục Theo dõi khi đang theo dõi việc nào đó.
+    ...(canAssign || counts.data?.following ? [{ key: 'following', label: `Theo dõi${n(counts.data?.following)}` }] : []),
+    ...(canAssign ? [{ key: 'all', label: me?.role === 'LEADER' ? 'Toàn trường' : 'Đơn vị' }] : []),
   ];
 
   return (

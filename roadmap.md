@@ -6,7 +6,7 @@ Phần mềm giao nhiệm vụ, nộp báo cáo, theo dõi tiến độ của Nh
 
 - **Hạ tầng:** VPS trong nước (ưu tiên Viettel). Dự phòng: máy chủ đặt tại trường, chỉ truy cập qua mạng nội bộ.
 - **Công nghệ:** Node.js 24 LTS, NestJS 12 + Prisma 7 + PostgreSQL 16; React 19 + Vite 8 + Ant Design 6;
-  Capacitor (đóng gói Android, iOS từ mã nguồn web); Caddy, Docker Compose.
+  Flutter (ứng dụng Android, iOS, thư mục `apps/mobile`); Caddy, Docker Compose.
 - **Phạm vi dữ liệu:** công việc hành chính, nghiệp vụ thông thường. **Không đưa thông tin thuộc bí mật nhà nước lên hệ thống.**
 - **Nhân lực:** 01 cán bộ chuyển đổi số (phát triển, vận hành).
 
@@ -23,7 +23,7 @@ Ký hiệu: `[x]` đã xong · `[ ]` chưa làm · `[~]` đang làm · 🧾 vi�
 | B | 3 – 6 | Hoàn thiện nghiệp vụ giao việc | Đủ chức năng cho thí điểm |
 | C | 7 – 8 | Triển khai máy chủ thật, rà soát bảo mật | Bản chạy thử trên VPS |
 | D | 9 – 10 | Thí điểm với ~20 đầu mối (trưởng cơ sở, đơn vị) | Báo cáo kết quả thí điểm |
-| E | 11 – 16 | Ứng dụng di động Android, iOS | Ứng dụng phát hành riêng tư, nhận thông báo đẩy |
+| E | 11 – 16 (bắt đầu sớm) | Ứng dụng di động Android, iOS (Flutter) | Ứng dụng phát hành riêng tư, nhận thông báo đẩy |
 | F | 17 – 18 | Triển khai toàn trường | Vận hành chính thức |
 
 Thí điểm (D) dùng đúng nhóm 20 đầu mối mà phương án thuê ngoài dự kiến, nên Ban Giám hiệu so sánh được trực tiếp.
@@ -86,19 +86,19 @@ dụng khác: xem [docs/tham-khao-ung-dung-giao-viec.md](docs/tham-khao-ung-dung
 ### Tuần 3: Màn hình "Việc của tôi"
 - [x] **B1. Việc của tôi theo mục**: *Cần xử lý* (quá hạn, đến hạn hôm nay, sắp đến hạn, chờ tôi duyệt, việc đơn vị
       cần phân tiếp; sắp theo hạn), *Được giao*, *Đã giao*, *Theo dõi*, *Chờ duyệt*, *Đơn vị* (chỉ huy đơn vị).
-      "Cần xử lý" là màn hình mặc định. Mục *Theo dõi* thêm cùng B5
+      "Cần xử lý" là màn hình mặc định. Mục *Theo dõi* có từ B5
 - [x] **B2. Màu theo hạn** thống nhất; hạn hiển thị tương đối ("Còn 2 ngày", "Trễ 3 ngày"); số việc cần xử lý,
       chờ duyệt trên menu
 - [ ] **B3. Lọc, tìm kiếm**: theo trạng thái, mức ưu tiên, đơn vị nhận, người giao, khoảng hạn, quá hạn
 
 ### Tuần 4: Vòng đời nhiệm vụ
-- [ ] **B4. Xác nhận đã nhận nhiệm vụ** (ghi thời điểm; người giao thấy ai chưa nhận)
-- [ ] **B5. Người theo dõi**: người giao thêm khi giao, hoặc lãnh đạo tự bấm "Theo dõi"; nhận thông báo, không phải làm
-- [ ] **B6. Đôn đốc**: người giao bấm "Nhắc" trên nhiệm vụ chậm → người thực hiện nhận thông báo ngay (giới hạn số lần/ngày)
-- [ ] **B7. Căn cứ giao nhiệm vụ**: số, ký hiệu, ngày văn bản hoặc "Kết luận giao ban..." (chỉ số hiệu, trích yếu)
-- [ ] **B8. Xin gia hạn**: người thực hiện đề nghị hạn mới kèm lý do; người giao duyệt hoặc từ chối; có thông báo
-- [ ] **B9. Sửa, hủy nhiệm vụ** trên giao diện; thông báo người nhận khi đổi hạn; **đính kèm tệp khi giao việc**
-- [ ] **B10. Dòng hoạt động** trong chi tiết nhiệm vụ: giao, nhận, tiến độ, đổi hạn, nộp, duyệt, bình luận theo thời gian
+- [x] **B4. Xác nhận đã nhận nhiệm vụ** (ghi thời điểm; người giao thấy ai chưa nhận)
+- [x] **B5. Người theo dõi**: người giao thêm khi giao, hoặc lãnh đạo tự bấm "Theo dõi"; nhận thông báo, không phải làm
+- [x] **B6. Đôn đốc**: người giao bấm "Nhắc" trên nhiệm vụ chậm → người thực hiện nhận thông báo ngay (giới hạn số lần/ngày)
+- [x] **B7. Căn cứ giao nhiệm vụ**: số, ký hiệu, ngày văn bản hoặc "Kết luận giao ban..." (chỉ số hiệu, trích yếu)
+- [x] **B8. Xin gia hạn**: người thực hiện đề nghị hạn mới kèm lý do; người giao duyệt hoặc từ chối; có thông báo
+- [x] **B9. Sửa, hủy nhiệm vụ** trên giao diện; thông báo người nhận khi đổi hạn; **đính kèm tệp khi giao việc**
+- [x] **B10. Dòng hoạt động** trong chi tiết nhiệm vụ: giao, nhận, tiến độ, đổi hạn, nộp, duyệt, bình luận theo thời gian
 
 ### Tuần 5: Duyệt, đơn vị, quản trị
 - [ ] **B11. Duyệt nhanh, duyệt hàng loạt** trong mục *Chờ duyệt*
@@ -136,12 +136,13 @@ Mục tiêu: hệ thống chạy trên VPS, an toàn, có sao lưu và giám sá
 ## Giai đoạn E: Ứng dụng di động Android, iOS (Tuần 11 – 16)
 
 Mục tiêu: cán bộ cài ứng dụng của Nhà trường, nhận nhắc việc ổn định như các ứng dụng thương mại.
+Ứng dụng viết bằng **Flutter** (một mã nguồn cho Android và iOS), gọi chung API với bản web.
 
-### Tuần 11: Nền tảng ứng dụng
-- [ ] **E1. Dự án Capacitor** (`apps/mobile`) đóng gói giao diện web; biểu tượng, màn hình khởi động theo logo trường
-- [ ] **E2. Đăng nhập trên ứng dụng**: ứng dụng không dùng được cookie của trình duyệt nên dùng **mã phiên lưu trong
-      kho bảo mật của điện thoại** (Keychain trên iOS, Keystore trên Android), gửi qua tiêu đề `Authorization`;
-      phía máy chủ dùng chung bảng phiên, chung cơ chế thu hồi khi đăng xuất
+### Tuần 11: Nền tảng ứng dụng (làm sớm, song song với giai đoạn B)
+- [~] **E1. Ứng dụng Flutter** (`apps/mobile`): đăng nhập (kèm OTP), Việc của tôi, chi tiết nhiệm vụ với thao tác một chạm,
+      thông báo, tài khoản; biểu tượng theo logo trường. Dùng chung API với bản web
+- [~] **E2. Đăng nhập trên ứng dụng**: mã phiên lưu trong **kho bảo mật của điện thoại** (Keychain trên iOS, Keystore trên
+      Android); dùng chung bảng phiên, chung cơ chế thu hồi khi đăng xuất. Bản phát hành chỉ kết nối HTTPS
 
 ### Tuần 12 – 13: Thông báo đẩy
 - [ ] **E3. Bảng thiết bị** (Android/iOS, mã thiết bị); đăng ký khi đăng nhập, xóa khi đăng xuất

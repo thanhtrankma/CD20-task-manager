@@ -33,7 +33,11 @@ export class FilesService {
     if (!type || !matchesSignature(file.buffer, type.magic)) {
       throw new BadRequestException('Loại tệp không được phép (chỉ PDF, Word, Excel, PowerPoint, ảnh)');
     }
-    await this.access.findVisible(user, taskId);
+    const task = await this.access.findVisible(user, taskId);
+    // Người theo dõi chỉ xem; tải tệp lên là việc của người giao (tệp kèm khi giao) và người thực hiện (báo cáo).
+    if (!this.access.canManage(user, task) && !(await this.access.canWork(user, taskId))) {
+      throw new ForbiddenException('Chỉ người giao việc và người thực hiện mới tải tệp lên');
+    }
 
     const storedName = `${randomUUID()}${ext}`;
     await mkdir(this.dir, { recursive: true });

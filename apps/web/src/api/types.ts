@@ -51,6 +51,45 @@ export interface Assignee {
   role: 'LEAD' | 'SUPPORT';
   user: Person | null;
   unit: { id: number; name: string } | null;
+  /** Thời điểm xác nhận đã nhận nhiệm vụ (null: chưa nhận). */
+  acknowledgedAt: string | null;
+  acknowledgedBy: Person | null;
+}
+
+export type TaskActivityType =
+  | 'CREATED'
+  | 'ACKNOWLEDGED'
+  | 'PROGRESS'
+  | 'SUBMITTED'
+  | 'APPROVED'
+  | 'RETURNED'
+  | 'UPDATED'
+  | 'CANCELLED'
+  | 'NUDGED'
+  | 'EXTENSION_REQUESTED'
+  | 'EXTENSION_APPROVED'
+  | 'EXTENSION_REJECTED'
+  | 'FOLLOWED';
+
+export interface TaskActivity {
+  id: number;
+  type: TaskActivityType;
+  detail: { progress?: number; oldDueDate?: string; newDueDate?: string; fields?: string[]; userIds?: number[] } | null;
+  createdAt: string;
+  user: Person;
+}
+
+export interface ExtensionRequest {
+  id: number;
+  oldDueDate: string | null;
+  newDueDate: string;
+  reason: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  decisionNote: string | null;
+  decidedAt: string | null;
+  createdAt: string;
+  requestedBy: Person;
+  decidedBy: Person | null;
 }
 
 export interface TaskRow {
@@ -77,6 +116,7 @@ export interface TaskCounts {
   review: number;
   assigned: number;
   created: number;
+  following: number;
 }
 
 export interface FileRef {
@@ -87,6 +127,8 @@ export interface FileRef {
 
 export interface TaskDetail extends TaskRow {
   description: string | null;
+  /** Căn cứ giao nhiệm vụ (số hiệu văn bản, kết luận giao ban). */
+  source: string | null;
   createdAt: string;
   parent: { id: number; title: string } | null;
   children: Pick<TaskRow, 'id' | 'title' | 'status' | 'dueDate' | 'progress'>[];
@@ -103,7 +145,11 @@ export interface TaskDetail extends TaskRow {
   }[];
   attachments: FileRef[];
   comments: { id: number; content: string; createdAt: string; user: Person }[];
-  permissions: { manage: boolean; work: boolean };
+  extensionRequests: ExtensionRequest[];
+  followers: { id: number; createdAt: string; user: Person }[];
+  activities: TaskActivity[];
+  permissions: { manage: boolean; work: boolean; acknowledge: boolean };
+  following: boolean;
 }
 
 export interface Paged<T> {

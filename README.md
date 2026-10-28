@@ -16,8 +16,9 @@ task-manager/
 │   │       ├── modules/   auth, users, units, tasks, submissions, files,
 │   │       │              notifications, dashboard, audit
 │   │       └── cli/seed.ts
-│   └── web/          React 19 + Vite 8 + Ant Design 6
-│       └── src/      api/, auth/, layouts/, pages/
+│   ├── web/          React 19 + Vite 8 + Ant Design 6
+│   │   └── src/      api/, auth/, layouts/, pages/
+│   └── mobile/       Ứng dụng Flutter (Android, iOS), xem apps/mobile/README.md
 ├── infra/            docker-compose, Caddyfile, scripts sao lưu/khôi phục
 └── docs/             tài liệu
 ```
@@ -130,6 +131,10 @@ Nguyên tắc an toàn:
 | GET/POST | `/api/tasks` | Danh sách (lọc, phân trang), giao việc |
 | GET | `/api/tasks?view=assigned\|created\|review` | Mục Được giao, Đã giao, Chờ duyệt của "Việc của tôi" (bỏ trống: mọi việc trong phạm vi) |
 | GET | `/api/tasks/todo` · `/api/tasks/counts` | Mục Cần xử lý (kèm lý do: quá hạn, hôm nay, chờ duyệt...), số đếm cho menu |
+| POST | `/api/tasks/:id/acknowledge` | Người được giao xác nhận đã nhận nhiệm vụ |
+| POST | `/api/tasks/:id/follow` · `/unfollow` · `/followers` | Tự theo dõi, bỏ theo dõi; người giao thêm người theo dõi |
+| POST | `/api/tasks/:id/nudge` | Người giao đôn đốc (tối đa 3 lần/ngày/nhiệm vụ) |
+| POST | `/api/tasks/:id/extensions` · `/api/tasks/extensions/:id/decide` | Xin gia hạn; người giao chấp thuận hoặc không |
 | GET/PATCH | `/api/tasks/:id` | Chi tiết, sửa/hủy |
 | POST | `/api/tasks/:id/progress` · `/comments` · `/submissions` | Tiến độ, trao đổi, nộp báo cáo |
 | POST | `/api/submissions/:id/review` | Duyệt / trả lại báo cáo |

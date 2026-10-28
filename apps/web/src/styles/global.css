@@ -225,9 +225,11 @@ a.stat:hover { border-color: #bfdbfe; box-shadow: 0 20px 40px -24px rgba(37, 99,
   .panel-head, .panel-body, .filter-bar { padding-left: 14px; padding-right: 14px; }
 }
 
-/* Ẩn chữ trên nút khi màn hình rất hẹp, chỉ giữ biểu tượng */
+/* Ẩn chữ trên nút khi màn hình rất hẹp, chỉ giữ biểu tượng; .only-xs là nhãn ngắn thay thế */
+.only-xs { display: none; }
 @media (max-width: 480px) {
   .hide-xs { display: none; }
+  .only-xs { display: inline; }
 }
 
 /* ---------- Nhận diện Nhà trường (đỏ – vàng theo logo) ---------- */

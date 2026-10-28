@@ -1,7 +1,16 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
 import { CurrentUser, Roles } from '../../common/decorators';
 import type { AuthUser } from '../../common/types';
-import { CommentDto, CreateTaskDto, ListTasksQuery, ProgressDto, UpdateTaskDto } from './tasks.dto';
+import {
+  CommentDto,
+  CreateTaskDto,
+  ExtensionDecisionDto,
+  ExtensionRequestDto,
+  FollowersDto,
+  ListTasksQuery,
+  ProgressDto,
+  UpdateTaskDto,
+} from './tasks.dto';
 import { TasksService } from './tasks.service';
 
 @Controller('tasks')
@@ -60,5 +69,58 @@ export class TasksController {
     @Body() dto: CommentDto,
   ) {
     return this.tasks.addComment(user, id, dto.content);
+  }
+
+  @Post(':id/acknowledge')
+  @HttpCode(204)
+  acknowledge(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
+    return this.tasks.acknowledge(user, id);
+  }
+
+  @Post(':id/follow')
+  @HttpCode(204)
+  follow(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
+    return this.tasks.follow(user, id);
+  }
+
+  @Post(':id/unfollow')
+  @HttpCode(204)
+  unfollow(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
+    return this.tasks.unfollow(user, id);
+  }
+
+  @Post(':id/followers')
+  @HttpCode(204)
+  addFollowers(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: FollowersDto,
+  ) {
+    return this.tasks.addFollowers(user, id, dto.userIds);
+  }
+
+  @Post(':id/nudge')
+  @HttpCode(200)
+  nudge(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
+    return this.tasks.nudge(user, id);
+  }
+
+  @Post(':id/extensions')
+  requestExtension(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ExtensionRequestDto,
+  ) {
+    return this.tasks.requestExtension(user, id, dto);
+  }
+
+  @Post('extensions/:requestId/decide')
+  @HttpCode(204)
+  decideExtension(
+    @CurrentUser() user: AuthUser,
+    @Param('requestId', ParseIntPipe) requestId: number,
+    @Body() dto: ExtensionDecisionDto,
+  ) {
+    return this.tasks.decideExtension(user, requestId, dto);
   }
 }

@@ -52,6 +52,23 @@ enum ExtensionStatus {
   REJECTED
 }
 
+// Dòng hoạt động của nhiệm vụ (hiển thị trong chi tiết). Không lưu nội dung bình luận, báo cáo.
+enum TaskActivityType {
+  CREATED
+  ACKNOWLEDGED
+  PROGRESS
+  SUBMITTED
+  APPROVED
+  RETURNED
+  UPDATED
+  CANCELLED
+  NUDGED
+  EXTENSION_REQUESTED
+  EXTENSION_APPROVED
+  EXTENSION_REJECTED
+  FOLLOWED
+}
+
 model Unit {
   id        Int      @id @default(autoincrement())
   code      String   @unique
@@ -91,7 +108,10 @@ model User {
   unit               Unit               @relation(fields: [unitId], references: [id])
   sessions           Session[]
   createdTasks       Task[]             @relation("TaskCreator")
-  assignments        TaskAssignee[]
+  assignments        TaskAssignee[]     @relation("Assignee")
+  acknowledgements   TaskAssignee[]     @relation("Acknowledger")
+  follows            TaskFollower[]
+  activities         TaskActivity[]
   taskUpdates        TaskUpdate[]
   submissions        Submission[]       @relation("Submitter")
   reviews            Submission[]       @relation("Reviewer")
@@ -127,6 +147,8 @@ model Task {
   id          Int        @id @default(autoincrement())
   title       String
   description String?    @db.Text
+  /// Căn cứ giao nhiệm vụ: số, ký hiệu, ngày văn bản hoặc kết luận giao ban (chỉ số hiệu, trích yếu).
+  source      String?    @db.VarChar(500)
   createdById Int        @map("created_by_id")
   dueDate     DateTime   @map("due_date")
   priority    Priority   @default(NORMAL)
@@ -141,6 +163,8 @@ model Task {
   parent            Task?              @relation("Subtasks", fields: [parentId], references: [id])
   children          Task[]             @relation("Subtasks")
   assignees         TaskAssignee[]
+  followers         TaskFollower[]
+  activities        TaskActivity[]
   updates           TaskUpdate[]
   submissions       Submission[]
   extensionRequests ExtensionRequest[]
@@ -160,15 +184,49 @@ model TaskAssignee {
   userId Int?         @map("user_id")
   unitId Int?         @map("unit_id")
   role   AssigneeRole @default(LEAD)
+  /// Thời điểm người được giao (hoặc chỉ huy đơn vị được giao) xác nhận đã nhận nhiệm vụ.
+  acknowledgedAt   DateTime? @map("acknowledged_at")
+  acknowledgedById Int?      @map("acknowledged_by_id")
 
-  task Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user User? @relation(fields: [userId], references: [id])
-  unit Unit? @relation(fields: [unitId], references: [id])
+  task           Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user           User? @relation("Assignee", fields: [userId], references: [id])
+  unit           Unit? @relation(fields: [unitId], references: [id])
+  acknowledgedBy User? @relation("Acknowledger", fields: [acknowledgedById], references: [id])
 
   @@index([taskId])
   @@index([userId])
   @@index([unitId])
   @@map("task_assignees")
+}
+
+// Người theo dõi: nắm tình hình, nhận thông báo, không phải thực hiện.
+model TaskFollower {
+  id        Int      @id @default(autoincrement())
+  taskId    Int      @map("task_id")
+  userId    Int      @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([taskId, userId])
+  @@index([userId])
+  @@map("task_followers")
+}
+
+model TaskActivity {
+  id        Int              @id @default(autoincrement())
+  taskId    Int              @map("task_id")
+  userId    Int              @map("user_id")
+  type      TaskActivityType
+  detail    Json?
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([taskId, createdAt])
+  @@map("task_activities")
 }
 
 model TaskUpdate {
@@ -210,8 +268,10 @@ model ExtensionRequest {
   id            Int             @id @default(autoincrement())
   taskId        Int             @map("task_id")
   requestedById Int             @map("requested_by_id")
+  oldDueDate    DateTime?       @map("old_due_date")
   newDueDate    DateTime        @map("new_due_date")
   reason        String          @db.Text
+  decisionNote  String?         @map("decision_note") @db.Text
   status        ExtensionStatus @default(PENDING)
   decidedById   Int?            @map("decided_by_id")
   decidedAt     DateTime?       @map("decided_at")

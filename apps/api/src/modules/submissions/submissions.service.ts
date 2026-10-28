@@ -8,6 +8,7 @@ import type { AuthUser } from '../../common/types';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { TaskAccessService } from '../tasks/task-access.service';
+import { TaskActivityService } from '../tasks/task-activity.service';
 import { CreateSubmissionDto, ReviewSubmissionDto } from './submissions.dto';
 
 @Injectable()
@@ -16,6 +17,7 @@ export class SubmissionsService {
     private readonly prisma: PrismaService,
     private readonly access: TaskAccessService,
     private readonly notifications: NotificationsService,
+    private readonly activity: TaskActivityService,
   ) {}
 
   /** Người thực hiện nộp báo cáo → công việc chuyển sang Chờ duyệt. */
@@ -51,9 +53,11 @@ export class SubmissionsService {
       return created;
     });
 
+    await this.activity.log(taskId, user.id, 'SUBMITTED');
+    await this.notifications.notify([task.createdById], 'Có báo cáo mới chờ đồng chí duyệt', task.title, `/tasks/${taskId}`);
     await this.notifications.notify(
-      [task.createdById],
-      'Có báo cáo mới chờ đồng chí duyệt',
+      await this.access.followerIds(taskId),
+      'Nhiệm vụ đồng chí theo dõi đã có báo cáo kết quả',
       task.title,
       `/tasks/${taskId}`,
     );
@@ -91,10 +95,17 @@ export class SubmissionsService {
       }),
     ]);
 
+    await this.activity.log(task.id, user.id, approved ? 'APPROVED' : 'RETURNED');
     await this.notifications.notify(
       [submission.submittedById],
       approved ? 'Báo cáo của đồng chí đã được duyệt' : 'Báo cáo của đồng chí bị trả lại',
       dto.note ?? task.title,
+      `/tasks/${task.id}`,
+    );
+    await this.notifications.notify(
+      await this.access.followerIds(task.id),
+      approved ? 'Nhiệm vụ đồng chí theo dõi đã hoàn thành' : 'Nhiệm vụ đồng chí theo dõi bị trả lại báo cáo',
+      task.title,
       `/tasks/${task.id}`,
     );
   }
