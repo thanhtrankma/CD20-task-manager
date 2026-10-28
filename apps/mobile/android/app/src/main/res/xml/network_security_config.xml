@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bản phát hành (release, profile): chỉ kết nối https, chỉ tin chứng chỉ gốc của hệ thống.
+     Bản debug dùng tệp cùng tên trong src/debug (cho phép http tới máy chủ phát triển). -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

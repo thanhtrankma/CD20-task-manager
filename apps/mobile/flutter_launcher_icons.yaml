@@ -1,0 +1,11 @@
+# Biểu tượng ứng dụng từ logo Nhà trường (apps/web/public/icon-512.png).
+# Tạo lại: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  image_path: "assets/icon.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  background_color_ios: "#ffffff"
+  adaptive_icon_background: "#ffffff"
+  adaptive_icon_foreground: "assets/icon_foreground.png"
+  min_sdk_android: 21
