@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../auth/auth_controller.dart';
+import '../theme.dart';
 import 'app_lock.dart';
 
 /// Phủ màn hình khóa lên toàn bộ ứng dụng khi [AppLock.locked]. Các màn hình bên dưới vẫn giữ trạng thái
@@ -17,10 +18,16 @@ class LockGate extends StatelessWidget {
       listenable: Listenable.merge([lock, auth]),
       builder: (context, _) {
         final show = lock.locked && auth.status != AuthStatus.loggedOut;
-        return Stack(fit: StackFit.expand, children: [
-          Offstage(offstage: show, child: TickerMode(enabled: !show, child: child)),
-          if (show) LockScreen(lock: lock, auth: auth),
-        ]);
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            Offstage(
+              offstage: show,
+              child: TickerMode(enabled: !show, child: child),
+            ),
+            if (show) LockScreen(lock: lock, auth: auth),
+          ],
+        );
       },
     );
   }
@@ -61,45 +68,80 @@ class _LockScreenState extends State<LockScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final lock = widget.lock;
+    const errorColor = Color(0xFFFFD7D7);
     return Material(
-      color: Colors.white,
-      child: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(32),
-            child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Image.asset('assets/logo.png', height: 112, semanticLabel: 'Logo Nhà trường'),
-              const SizedBox(height: 20),
-              Text('Giao nhiệm vụ',
-                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, color: theme.colorScheme.primary)),
-              const SizedBox(height: 8),
-              const Text('Ứng dụng đang khóa. Đồng chí xác thực bằng vân tay, khuôn mặt hoặc mã khóa màn hình.',
-                  textAlign: TextAlign.center),
-              const SizedBox(height: 28),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: lock.authenticating || _loggingOut ? null : lock.unlock,
-                  icon: const Icon(Icons.lock_open),
-                  label: const Text('Mở khóa'),
+      child: HeaderBackground(
+        starSize: 320,
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(32),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const LogoBadge(size: 112),
+                    const SizedBox(height: 22),
+                    const OrgLine(),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Giao nhiệm vụ',
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.lock_outline, color: Palette.goldLight, size: 18),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Ứng dụng đang khóa',
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Đồng chí xác thực bằng vân tay, khuôn mặt hoặc mã khóa màn hình.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.78), fontSize: 13),
+                    ),
+                    const SizedBox(height: 28),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: lock.authenticating || _loggingOut ? null : lock.unlock,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Palette.goldLight,
+                          foregroundColor: Palette.red900,
+                          disabledBackgroundColor: Palette.goldLight.withValues(alpha: 0.5),
+                          minimumSize: const Size.fromHeight(50),
+                        ),
+                        icon: const Icon(Icons.fingerprint),
+                        label: const Text('Mở khóa'),
+                      ),
+                    ),
+                    if (lock.error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        lock.error!,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: errorColor),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    TextButton.icon(
+                      onPressed: _loggingOut ? null : _logout,
+                      style: TextButton.styleFrom(foregroundColor: _confirmLogout ? errorColor : Colors.white70),
+                      icon: const Icon(Icons.logout, size: 18),
+                      label: Text(_confirmLogout ? 'Bấm lần nữa để đăng xuất' : 'Đăng xuất'),
+                    ),
+                  ],
                 ),
               ),
-              if (lock.error != null) ...[
-                const SizedBox(height: 12),
-                Text(lock.error!, textAlign: TextAlign.center, style: TextStyle(color: theme.colorScheme.error)),
-              ],
-              const SizedBox(height: 24),
-              TextButton.icon(
-                onPressed: _loggingOut ? null : _logout,
-                icon: Icon(Icons.logout, color: _confirmLogout ? theme.colorScheme.error : null),
-                label: Text(
-                  _confirmLogout ? 'Bấm lần nữa để đăng xuất' : 'Đăng xuất',
-                  style: TextStyle(color: _confirmLogout ? theme.colorScheme.error : null),
-                ),
-              ),
-            ]),
+            ),
           ),
         ),
       ),

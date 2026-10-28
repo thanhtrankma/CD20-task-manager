@@ -93,6 +93,8 @@ class Me {
     required this.mustChangePassword,
     required this.twoFactorRequired,
     this.email,
+    this.rank,
+    this.position,
   });
 
   final int id;
@@ -102,6 +104,9 @@ class Me {
   final String unitName;
   final int? unitId;
   final String? email;
+  /// Cấp bậc, chức vụ (có thể trống).
+  final String? rank;
+  final String? position;
   final bool mustChangePassword;
   final bool twoFactorRequired;
 
@@ -115,7 +120,12 @@ class Me {
         email: _strOrNull(j['email']),
         mustChangePassword: _bool(j['mustChangePassword']),
         twoFactorRequired: _bool(j['twoFactorRequired']),
+        rank: _strOrNull(j['rank']),
+        position: _strOrNull(j['position']),
       );
+
+  /// "Thượng úy Nguyễn Văn A" (có cấp bậc) hoặc họ tên.
+  String get rankName => [if ((rank ?? '').trim().isNotEmpty) rank!.trim(), fullName].join(' ');
 }
 
 class Assignee {

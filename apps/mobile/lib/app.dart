@@ -5,7 +5,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import 'auth/auth_controller.dart';
-import 'constants.dart';
 import 'push/messaging.dart';
 import 'screens/account_screens.dart';
 import 'screens/login_screen.dart';
@@ -15,26 +14,7 @@ import 'screens/tasks_screen.dart';
 import 'security/lock_screen.dart';
 import 'services/app_services.dart';
 import 'services/badge.dart';
-
-ThemeData buildTheme() {
-  final scheme = ColorScheme.fromSeed(seedColor: primaryColor, primary: primaryColor);
-  return ThemeData(
-    useMaterial3: true,
-    colorScheme: scheme,
-    scaffoldBackgroundColor: const Color(0xFFF5F7FB),
-    appBarTheme: const AppBarTheme(centerTitle: false, backgroundColor: Colors.white, surfaceTintColor: Colors.white),
-    cardTheme: CardThemeData(
-      elevation: 0,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFFE5E7EB)),
-      ),
-    ),
-    navigationBarTheme: const NavigationBarThemeData(backgroundColor: Colors.white, height: 64),
-    snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
-  );
-}
+import 'theme.dart';
 
 GoRouter buildRouter(AuthController auth) {
   final rootKey = GlobalKey<NavigatorState>();

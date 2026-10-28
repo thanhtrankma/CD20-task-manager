@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'models/models.dart';
+import 'theme.dart';
 import 'util/due.dart';
 
 /// Màu nền và chữ cho thẻ dạng viên thuốc (cùng bảng màu với bản web, apps/web/src/constants.ts).
@@ -11,11 +12,11 @@ class Tone {
   final Color fg;
 }
 
-const primaryColor = Color(0xFF2563EB);
+const primaryColor = Palette.red700;
 
 const statusTone = <TaskStatus, Tone>{
-  TaskStatus.newTask: Tone('Mới giao', Color(0xFFEFF6FF), Color(0xFF1D4ED8)),
-  TaskStatus.inProgress: Tone('Đang thực hiện', Color(0xFFEEF2FF), Color(0xFF4338CA)),
+  TaskStatus.newTask: Tone('Mới giao', Color(0xFFFFF6DA), Palette.goldDark),
+  TaskStatus.inProgress: Tone('Đang thực hiện', Palette.oliveLight, Palette.olive),
   TaskStatus.pendingReview: Tone('Chờ duyệt', Color(0xFFFFFBEB), Color(0xFFB45309)),
   TaskStatus.returned: Tone('Bị trả lại', Color(0xFFFFF7ED), Color(0xFFC2410C)),
   TaskStatus.done: Tone('Hoàn thành', Color(0xFFECFDF5), Color(0xFF047857)),
@@ -65,7 +66,7 @@ const todoReasonColor = <TodoReason, Color>{
   TodoReason.review: Color(0xFFB45309),
   TodoReason.returned: Color(0xFFC2410C),
   TodoReason.soon: Color(0xFFB45309),
-  TodoReason.newTask: primaryColor,
+  TodoReason.newTask: Palette.goldDark,
 };
 
 const roleLabel = <Role, String>{

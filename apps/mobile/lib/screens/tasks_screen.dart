@@ -5,6 +5,7 @@ import '../api/api_client.dart';
 import '../constants.dart';
 import '../models/models.dart';
 import '../services/app_services.dart';
+import '../theme.dart';
 import '../util/todo_groups.dart';
 import '../widgets/common.dart';
 import '../widgets/task_card.dart';
@@ -87,13 +88,30 @@ class _TasksScreenState extends State<TasksScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final role = _app.auth.me?.role ?? Role.staff;
+    final me = _app.auth.me;
+    final role = me?.role ?? Role.staff;
     final views = viewsFor(role);
     return DefaultTabController(
       length: views.length,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Việc của tôi'),
+          toolbarHeight: 92,
+          flexibleSpace: const HeaderBackground(starSize: 150),
+          backgroundColor: Colors.transparent,
+          titleSpacing: 16,
+          title: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+            const OrgLine(),
+            const SizedBox(height: 6),
+            const Text('Việc của tôi', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white)),
+            if (me != null)
+              Text(
+                'Đồng chí ${me.rankName} · ${me.unitName}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.82)),
+              ),
+          ]),
+          actions: const [Padding(padding: EdgeInsets.only(right: 14), child: LogoBadge(size: 42))],
           bottom: TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
@@ -132,9 +150,9 @@ class _TabLabel extends StatelessWidget {
       if (count > 0) ...[
         const SizedBox(width: 6),
         Badge(
-          label: Text('$count'),
-          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-          textColor: Theme.of(context).colorScheme.onPrimaryContainer,
+          label: Text('$count', style: const TextStyle(fontWeight: FontWeight.w800)),
+          backgroundColor: Palette.goldLight,
+          textColor: Palette.red900,
         ),
       ],
     ]);
@@ -233,10 +251,14 @@ class _TodoListState extends State<TodoList> with AutomaticKeepAliveClientMixin 
                 task: t,
                 onTap: () => openTask(context, t.id),
                 quickAction: t.status == TaskStatus.newTask && g.reason != TodoReason.review
-                    ? FilledButton.tonal(
+                    ? FilledButton.icon(
                         onPressed: _busy.contains(t.id) ? null : () => _acknowledge(t),
-                        style: FilledButton.styleFrom(visualDensity: VisualDensity.compact),
-                        child: const Text('Đã nhận'),
+                        style: FilledButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                        ),
+                        icon: const Icon(Icons.check, size: 16),
+                        label: const Text('Đã nhận'),
                       )
                     : null,
               ),
@@ -259,15 +281,21 @@ class _GroupHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = todoReasonColor[reason]!;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 6),
       child: Row(children: [
-        Container(width: 4, height: 16, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+        Star(size: 13, color: color),
         const SizedBox(width: 8),
         Expanded(
-          child: Text(todoReasonLabel[reason]!,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(color: color, fontWeight: FontWeight.w700)),
+          child: Text(
+            todoReasonLabel[reason]!,
+            style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 0.2),
+          ),
         ),
-        Text('$count', style: TextStyle(color: color, fontWeight: FontWeight.w700)),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(999)),
+          child: Text('$count', style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 12)),
+        ),
       ]),
     );
   }

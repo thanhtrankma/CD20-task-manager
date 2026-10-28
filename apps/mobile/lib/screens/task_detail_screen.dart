@@ -4,6 +4,7 @@ import '../api/api_client.dart';
 import '../constants.dart';
 import '../models/models.dart';
 import '../services/app_services.dart';
+import '../theme.dart';
 import '../util/activity.dart';
 import '../util/due.dart';
 import '../util/format.dart';
@@ -316,7 +317,12 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
           Expanded(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(value: t.row.progress / 100, minHeight: 6),
+              child: LinearProgressIndicator(
+                value: t.row.progress / 100,
+                minHeight: 6,
+                color: Palette.olive,
+                backgroundColor: Palette.oliveLight,
+              ),
             ),
           ),
           const SizedBox(width: 10),

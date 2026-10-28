@@ -155,12 +155,14 @@ void main() {
 
     await tester.enterText(find.byType(TextFormField).at(0), 'canbo');
     await tester.enterText(find.byType(TextFormField).at(1), 'mat-khau-thu');
+    await tester.ensureVisible(find.text('Đăng nhập'));
     await tester.tap(find.text('Đăng nhập'));
     await tester.pumpAndSettle();
 
     // Máy chủ đòi mã: hiện ô nhập mã 6 số.
     expect(find.byKey(const Key('otp')), findsOneWidget);
     await tester.enterText(find.byKey(const Key('otp')), '123456');
+    await tester.ensureVisible(find.text('Xác nhận'));
     await tester.tap(find.text('Xác nhận'));
     await tester.pumpAndSettle();
 
