@@ -16,6 +16,9 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+export const TASK_VIEWS = ['assigned', 'created', 'review'] as const;
+export type TaskView = (typeof TASK_VIEWS)[number];
+
 export class AssigneeDto {
   @IsOptional() @IsInt() userId?: number;
   @IsOptional() @IsInt() unitId?: number;
@@ -48,8 +51,11 @@ export class UpdateTaskDto {
 export class ListTasksQuery {
   @IsOptional() @IsEnum(TaskStatus) status?: TaskStatus;
   @IsOptional() @IsString() @MaxLength(100) q?: string;
-  /** assigned: việc tôi nhận; created: việc tôi giao. */
-  @IsOptional() @IsIn(['assigned', 'created']) mine?: 'assigned' | 'created';
+  /**
+   * Mục trong "Việc của tôi". assigned: được giao (kể cả giao cho đơn vị mình chỉ huy); created: tôi giao;
+   * review: chờ tôi duyệt. Bỏ trống: mọi công việc trong phạm vi được xem (đơn vị, toàn trường).
+   */
+  @IsOptional() @IsIn(TASK_VIEWS) view?: TaskView;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 20;
 }

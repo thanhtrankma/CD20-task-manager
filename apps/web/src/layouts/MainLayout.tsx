@@ -1,4 +1,3 @@
-import { useQuery } from '@tanstack/react-query';
 import {
   Building2,
   ClipboardList,
@@ -14,12 +13,11 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { api } from '../api/client';
-import type { DashboardSummary } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import { ORG } from '../config/org';
 import { ROLE } from '../constants';
 import { CreateTaskModal } from '../pages/tasks/CreateTaskModal';
+import { useTaskCounts } from '../pages/tasks/TasksPage';
 import { syncPush } from '../push';
 import { ShellContext } from './shell';
 
@@ -73,18 +71,9 @@ export function MainLayout() {
 
   const isAdmin = me?.role === 'ADMIN';
   const canAssign = me?.role === 'LEADER' || me?.role === 'UNIT_HEAD';
-  const { data: summary } = useQuery({
-    queryKey: ['dashboard'],
-    queryFn: () => api.get<DashboardSummary>('/dashboard/summary'),
-    enabled: !!me && !isAdmin,
-  });
+  const counts = useTaskCounts(!!me && !isAdmin);
   if (!me) return null;
 
-  const activeCount =
-    (summary?.byStatus.NEW ?? 0) +
-    (summary?.byStatus.IN_PROGRESS ?? 0) +
-    (summary?.byStatus.RETURNED ?? 0) +
-    (summary?.byStatus.PENDING_REVIEW ?? 0);
   const close = () => setSidebarOpen(false);
 
   return (
@@ -151,7 +140,7 @@ export function MainLayout() {
                 onNavigate={close}
                 items={[
                   { to: '/', label: 'Tổng quan', icon: LayoutDashboard },
-                  { to: '/tasks', label: 'Danh sách công việc', icon: ClipboardList, badge: activeCount },
+                  { to: '/tasks', label: 'Việc của tôi', icon: ClipboardList, badge: counts.data?.todo },
                 ]}
               />
             )}

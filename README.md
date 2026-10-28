@@ -128,6 +128,8 @@ Nguyên tắc an toàn:
 | GET | `/api/auth/me` | Thông tin người đang đăng nhập |
 | GET/POST/PATCH | `/api/units`, `/api/users` | Đơn vị, tài khoản (ADMIN) |
 | GET/POST | `/api/tasks` | Danh sách (lọc, phân trang), giao việc |
+| GET | `/api/tasks?view=assigned\|created\|review` | Mục Được giao, Đã giao, Chờ duyệt của "Việc của tôi" (bỏ trống: mọi việc trong phạm vi) |
+| GET | `/api/tasks/todo` · `/api/tasks/counts` | Mục Cần xử lý (kèm lý do: quá hạn, hôm nay, chờ duyệt...), số đếm cho menu |
 | GET/PATCH | `/api/tasks/:id` | Chi tiết, sửa/hủy |
 | POST | `/api/tasks/:id/progress` · `/comments` · `/submissions` | Tiến độ, trao đổi, nộp báo cáo |
 | POST | `/api/submissions/:id/review` | Duyệt / trả lại báo cáo |

@@ -75,8 +75,7 @@ Mục tiêu: mọi thay đổi sau này đều được kiểm thử tự độn
   - Cấu hình bằng biến `REQUIRE_2FA_ROLES` (mặc định `ADMIN,LEADER`)
 - [x] **A3. Nhật ký không sửa, xóa được**: trigger PostgreSQL chặn `UPDATE`, `DELETE` trên bảng `audit_logs`
 - [x] **A4. Dọn phiên hết hạn** (mỗi giờ); vô hiệu hóa tài khoản, đặt lại mật khẩu thì thu hồi mọi phiên (đã có, nay có kiểm thử)
-- [~] **A5. Kiểm thử tự động trên GitHub** (GitHub Actions): mỗi lần đẩy mã chạy build, kiểm tra kiểu và bộ kiểm thử
-  (đã viết `.github/workflows/ci.yml`; xác nhận chạy được sau lần đẩy mã tiếp theo)
+- [x] **A5. Kiểm thử tự động trên GitHub** (GitHub Actions): mỗi lần đẩy mã chạy build, kiểm tra kiểu và bộ kiểm thử
 
 ## Giai đoạn B: Hoàn thiện nghiệp vụ (Tuần 3 – 6)
 
@@ -85,10 +84,10 @@ mẫu báo cáo hiện tại. Nhiều hạng mục học từ MISA AMIS Công vi
 dụng khác: xem [docs/tham-khao-ung-dung-giao-viec.md](docs/tham-khao-ung-dung-giao-viec.md).
 
 ### Tuần 3: Màn hình "Việc của tôi"
-- [ ] **B1. Việc của tôi theo mục**: *Cần xử lý* (quá hạn, đến hạn hôm nay, sắp đến hạn, chờ tôi duyệt, việc đơn vị
+- [x] **B1. Việc của tôi theo mục**: *Cần xử lý* (quá hạn, đến hạn hôm nay, sắp đến hạn, chờ tôi duyệt, việc đơn vị
       cần phân tiếp; sắp theo hạn), *Được giao*, *Đã giao*, *Theo dõi*, *Chờ duyệt*, *Đơn vị* (chỉ huy đơn vị).
-      "Cần xử lý" là màn hình mặc định
-- [ ] **B2. Màu theo hạn** thống nhất; hạn hiển thị tương đối ("Còn 2 ngày", "Trễ 3 ngày"); số việc cần xử lý,
+      "Cần xử lý" là màn hình mặc định. Mục *Theo dõi* thêm cùng B5
+- [x] **B2. Màu theo hạn** thống nhất; hạn hiển thị tương đối ("Còn 2 ngày", "Trễ 3 ngày"); số việc cần xử lý,
       chờ duyệt trên menu
 - [ ] **B3. Lọc, tìm kiếm**: theo trạng thái, mức ưu tiên, đơn vị nhận, người giao, khoảng hạn, quá hạn
 

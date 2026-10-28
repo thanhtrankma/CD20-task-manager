@@ -14,6 +14,16 @@ export class TasksController {
     return this.tasks.list(user, query);
   }
 
+  @Get('todo')
+  todo(@CurrentUser() user: AuthUser) {
+    return this.tasks.todo(user);
+  }
+
+  @Get('counts')
+  counts(@CurrentUser() user: AuthUser) {
+    return this.tasks.counts(user);
+  }
+
   @Get(':id')
   get(@CurrentUser() user: AuthUser, @Param('id', ParseIntPipe) id: number) {
     return this.tasks.get(user, id);

@@ -26,8 +26,8 @@ import { api } from '../../api/client';
 import { ItemList, ItemRow } from '../../components/ItemList';
 import type { FileRef, TaskDetail } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
-import { OverduePill, Pill, PriorityPill, StatusPill } from '../../components/Pill';
-import { DATE_FORMAT, DATETIME_FORMAT } from '../../constants';
+import { DueTag, Pill, PriorityPill, StatusPill } from '../../components/Pill';
+import { DATETIME_FORMAT } from '../../constants';
 import { PageHeader, Panel, useShell } from '../../layouts/shell';
 import { assigneeLabel } from './TasksPage';
 
@@ -106,7 +106,7 @@ export function TaskDetailPage() {
         title={task.title}
         subtitle={
           <Link to="/tasks" className="muted">
-            <ArrowLeft size={12} style={{ verticalAlign: -1 }} /> Danh sách công việc
+            <ArrowLeft size={12} style={{ verticalAlign: -1 }} /> Việc của tôi
           </Link>
         }
         actions={
@@ -137,14 +137,18 @@ export function TaskDetailPage() {
                 <Descriptions.Item label="Trạng thái">
                   <Space size={4} wrap>
                     <StatusPill status={task.status} />
-                    {task.overdue && <OverduePill />}
                   </Space>
                 </Descriptions.Item>
                 <Descriptions.Item label="Ưu tiên">
                   <PriorityPill priority={task.priority} />
                 </Descriptions.Item>
                 <Descriptions.Item label="Người giao">{task.createdBy.fullName}</Descriptions.Item>
-                <Descriptions.Item label="Hạn">{dayjs(task.dueDate).format(DATE_FORMAT)}</Descriptions.Item>
+                <Descriptions.Item label="Hạn">
+                  <Space size={6} wrap>
+                    {dayjs(task.dueDate).format(DATETIME_FORMAT)}
+                    <DueTag dueDate={task.dueDate} status={task.status} />
+                  </Space>
+                </Descriptions.Item>
                 <Descriptions.Item label="Chủ trì">
                   {task.assignees.filter((a) => a.role === 'LEAD').map(assigneeLabel).join(', ')}
                 </Descriptions.Item>

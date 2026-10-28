@@ -12,15 +12,13 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
-import type { DashboardSummary, Paged, TaskRow, TaskStatus } from '../api/types';
+import type { DashboardSummary, TodoItem } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import { ItemList, ItemRow } from '../components/ItemList';
 import { EnablePushBanner } from '../components/NotificationSettings';
-import { OverduePill, StatusPill } from '../components/Pill';
-import { DATE_FORMAT } from '../constants';
+import { DueTag } from '../components/Pill';
+import { TODO_REASON } from '../constants';
 import { PageHeader, Panel } from '../layouts/shell';
-
-const ACTIVE: TaskStatus[] = ['NEW', 'IN_PROGRESS', 'RETURNED', 'PENDING_REVIEW'];
 
 function Stat({
   label,
@@ -66,11 +64,11 @@ export function DashboardPage() {
     queryKey: ['dashboard'],
     queryFn: () => api.get<DashboardSummary>('/dashboard/summary'),
   });
-  const upcoming = useQuery({
-    queryKey: ['tasks', 'upcoming'],
-    queryFn: () => api.get<Paged<TaskRow>>('/tasks?pageSize=30'),
+  const todo = useQuery({
+    queryKey: ['tasks', 'todo'],
+    queryFn: () => api.get<{ items: TodoItem[] }>('/tasks/todo'),
   });
-  const attention = (upcoming.data?.items ?? []).filter((t) => ACTIVE.includes(t.status)).slice(0, 6);
+  const attention = (todo.data?.items ?? []).slice(0, 6);
   const s = data?.byStatus;
 
   return (
@@ -88,8 +86,8 @@ export function DashboardPage() {
         </div>
 
         <div style={{ display: 'grid', gap: 20, gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))' }}>
-          <Panel title="Việc cần chú ý" extra={<Link to="/tasks" className="muted">Xem tất cả →</Link>}>
-            {upcoming.isLoading ? (
+          <Panel title="Việc cần xử lý" extra={<Link to="/tasks" className="muted">Xem tất cả →</Link>}>
+            {todo.isLoading ? (
               <Skeleton active />
             ) : (
               <ItemList
@@ -99,13 +97,8 @@ export function DashboardPage() {
                 renderItem={(t) => (
                   <ItemRow
                     title={<Link to={`/tasks/${t.id}`} className="task-link">{t.title}</Link>}
-                    description={`Hạn ${dayjs(t.dueDate).format(DATE_FORMAT)} · Giao bởi ${t.createdBy.fullName}`}
-                    actions={
-                      <>
-                        {t.overdue && <OverduePill />}
-                        <StatusPill status={t.status} />
-                      </>
-                    }
+                    description={`${TODO_REASON[t.reason]} · Giao bởi ${t.createdBy.fullName}`}
+                    actions={<DueTag dueDate={t.dueDate} status={t.status} />}
                   />
                 )}
               />

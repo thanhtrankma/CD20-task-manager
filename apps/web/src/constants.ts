@@ -1,4 +1,5 @@
-import type { Priority, Role, TaskStatus } from './api/types';
+import type { Priority, Role, TaskStatus, TodoReason } from './api/types';
+import type { DueTone } from './utils/due';
 
 interface Tone {
   label: string;
@@ -24,6 +25,24 @@ export const PRIORITY: Record<Priority, Tone> = {
 };
 
 export const OVERDUE: Tone = { label: 'Quá hạn', bg: '#fff1f2', fg: '#be123c' };
+
+/** Màu hạn: quá hạn đỏ, hôm nay cam, sắp đến hạn vàng, còn hạn xám. */
+export const DUE_TONE: Record<DueTone, Omit<Tone, 'label'>> = {
+  overdue: { bg: '#fff1f2', fg: '#be123c' },
+  today: { bg: '#fff7ed', fg: '#c2410c' },
+  soon: { bg: '#fffbeb', fg: '#b45309' },
+  normal: { bg: '#f1f5f9', fg: '#475569' },
+};
+
+/** Nhóm trong mục "Cần xử lý" (thứ tự do máy chủ sắp). */
+export const TODO_REASON: Record<TodoReason, string> = {
+  overdue: 'Quá hạn',
+  today: 'Đến hạn hôm nay',
+  review: 'Chờ đồng chí duyệt',
+  returned: 'Bị trả lại, cần làm tiếp',
+  soon: 'Sắp đến hạn (3 ngày)',
+  new: 'Mới được giao',
+};
 
 export const ROLE: Record<Role, string> = {
   ADMIN: 'Quản trị hệ thống',

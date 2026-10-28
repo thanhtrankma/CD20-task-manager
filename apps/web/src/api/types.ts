@@ -65,6 +65,20 @@ export interface TaskRow {
   assignees: Assignee[];
 }
 
+export type TodoReason = 'overdue' | 'today' | 'review' | 'returned' | 'soon' | 'new';
+
+/** Mục "Cần xử lý": công việc kèm lý do cần xử lý. */
+export interface TodoItem extends TaskRow {
+  reason: TodoReason;
+}
+
+export interface TaskCounts {
+  todo: number;
+  review: number;
+  assigned: number;
+  created: number;
+}
+
 export interface FileRef {
   id: number;
   originalName: string;

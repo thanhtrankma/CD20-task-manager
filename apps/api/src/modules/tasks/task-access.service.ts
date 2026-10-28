@@ -58,6 +58,14 @@ export class TaskAccessService {
     return user.role === 'LEADER' || task.createdById === user.id;
   }
 
+  /** Điều kiện lọc các công việc người dùng là người thực hiện (cùng quy tắc với canWork). */
+  async workWhere(user: AuthUser): Promise<Prisma.TaskWhereInput> {
+    const direct = { assignees: { some: { userId: user.id } } };
+    if (user.role !== 'UNIT_HEAD') return direct;
+    const unitIds = await this.units.descendantIds(user.unitId);
+    return { OR: [direct, { assignees: { some: { unitId: { in: unitIds } } } }] };
+  }
+
   /** Người thực hiện: được giao trực tiếp, hoặc chỉ huy của đơn vị được giao. */
   async canWork(user: AuthUser, taskId: number) {
     const assignees = await this.prisma.taskAssignee.findMany({ where: { taskId } });
