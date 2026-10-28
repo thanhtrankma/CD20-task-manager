@@ -7,8 +7,9 @@ export interface UnitNode {
   children: UnitNode[];
 }
 
-/** Dựng cây đơn vị (cho Tree, TreeSelect) từ danh sách phẳng. */
-export function buildUnitTree(units: Unit[]): UnitNode[] {
+/** Dựng cây đơn vị (cho Tree, TreeSelect) từ danh sách phẳng. Mặc định bỏ đơn vị đã ẩn (không chọn được nữa). */
+export function buildUnitTree(all: Unit[], { includeInactive = false } = {}): UnitNode[] {
+  const units = includeInactive ? all : all.filter((u) => u.isActive);
   const nodes = new Map<number, UnitNode>(
     units.map((u) => [u.id, { value: u.id, key: u.id, title: u.name, children: [] }]),
   );

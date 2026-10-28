@@ -3,6 +3,8 @@ export class ApiError extends Error {
     public status: number,
     message: string,
     public code?: string,
+    /** Lỗi theo từng dòng (nhập Excel). */
+    public errors?: { row: number; message: string }[],
   ) {
     super(message);
   }
@@ -20,7 +22,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const message = Array.isArray(data.message) ? data.message.join('; ') : data.message;
-    throw new ApiError(res.status, message ?? 'Có lỗi xảy ra', data.code);
+    throw new ApiError(res.status, message ?? 'Có lỗi xảy ra', data.code, data.errors);
   }
   return data as T;
 }

@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
-import { Button, Grid, Input, Pagination, Progress, Select, Skeleton, Table, Tabs } from 'antd';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { App, Button, Grid, Input, Pagination, Popconfirm, Progress, Select, Skeleton, Space, Table, Tabs } from 'antd';
+import dayjs from 'dayjs';
 import { Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -8,10 +9,10 @@ import type { Assignee, Paged, TaskCounts, TaskRow, TaskStatus, TodoItem, TodoRe
 import { useAuth } from '../../auth/AuthContext';
 import { ItemList, ItemRow } from '../../components/ItemList';
 import { DueTag, PriorityPill, StatusPill } from '../../components/Pill';
-import { STATUS, TODO_REASON } from '../../constants';
+import { DATE_FORMAT, STATUS, TODO_REASON } from '../../constants';
 import { PageHeader, Panel, useShell } from '../../layouts/shell';
 
-export const assigneeLabel = (a: Assignee) => a.unit?.name ?? a.user?.fullName ?? '';
+export const assigneeLabel = (a: Pick<Assignee, 'unit' | 'user'>) => a.unit?.name ?? a.user?.fullName ?? '';
 const leads = (t: TaskRow) => t.assignees.filter((a) => a.role === 'LEAD').map(assigneeLabel).join(', ');
 
 /** Các mục của "Việc của tôi". "all": mọi việc trong phạm vi được xem (đơn vị, toàn trường). */
@@ -74,7 +75,13 @@ export function TasksPage() {
             items={tabs}
             tabBarStyle={{ padding: '0 16px', marginBottom: 0 }}
           />
-          {view === 'todo' ? <TodoList /> : <TaskList key={view} view={view} status={status} setParams={setParams} />}
+          {view === 'todo' ? (
+            <TodoList />
+          ) : view === 'review' ? (
+            <ReviewList />
+          ) : (
+            <TaskList key={view} view={view} status={status} setParams={setParams} />
+          )}
         </Panel>
       </div>
     </>
@@ -289,6 +296,166 @@ function TaskList({
           ]}
         />
       )}
+    </>
+  );
+}
+
+/**
+ * Mục "Chờ duyệt": báo cáo, đề nghị gia hạn chờ chính mình xử lý. Duyệt nhanh ngay trên dòng,
+ * hoặc chọn nhiều báo cáo rồi duyệt "Đạt" một lần (trả lại cần nhận xét nên làm từng báo cáo).
+ */
+function ReviewList() {
+  const { message } = App.useApp();
+  const qc = useQueryClient();
+  const [selected, setSelected] = useState<number[]>([]);
+  const [busy, setBusy] = useState(false);
+  const { data, isLoading } = useQuery({
+    queryKey: ['tasks', 'list', { view: 'review' }],
+    queryFn: () => api.get<Paged<TaskRow>>('/tasks?view=review&pageSize=100'),
+  });
+  const items = data?.items ?? [];
+  const submissionOf = (t: TaskRow) => t.submissions?.[0];
+  const extensionOf = (t: TaskRow) => t.extensionRequests?.[0];
+  const noteValue = (id: string) => (document.getElementById(id) as HTMLTextAreaElement | null)?.value || undefined;
+
+  const act = async (fn: () => Promise<unknown>, ok: string) => {
+    setBusy(true);
+    try {
+      await fn();
+      message.success(ok);
+      setSelected([]);
+    } catch (e) {
+      message.error((e as Error).message);
+    } finally {
+      setBusy(false);
+      await qc.invalidateQueries({ queryKey: ['tasks'] });
+    }
+  };
+
+  const approveSelected = () =>
+    act(async () => {
+      const ids = items.filter((t) => selected.includes(t.id)).map((t) => submissionOf(t)!.id);
+      const r = await api.post<{ approved: number; failed: { id: number; message: string }[] }>(
+        '/submissions/approve-batch',
+        { submissionIds: ids },
+      );
+      if (r.failed.length) message.warning(`${r.failed.length} báo cáo chưa duyệt được: ${r.failed[0].message}`);
+    }, 'Đã duyệt các báo cáo đã chọn');
+
+  const actions = (t: TaskRow) => {
+    const sub = submissionOf(t);
+    const ext = extensionOf(t);
+    if (sub) {
+      return (
+        <Space size={6} wrap>
+          <Button
+            size="small"
+            type="primary"
+            disabled={busy}
+            onClick={() => act(() => api.post(`/submissions/${sub.id}/review`, { decision: 'APPROVED' }), 'Đã duyệt')}
+          >
+            Duyệt
+          </Button>
+          <Popconfirm
+            title="Trả lại báo cáo?"
+            description={<Input.TextArea id={`rv-${sub.id}`} placeholder="Nhận xét, yêu cầu bổ sung" />}
+            onConfirm={() =>
+              act(
+                () => api.post(`/submissions/${sub.id}/review`, { decision: 'RETURNED', note: noteValue(`rv-${sub.id}`) }),
+                'Đã trả lại',
+              )
+            }
+          >
+            <Button size="small" disabled={busy}>
+              Trả lại
+            </Button>
+          </Popconfirm>
+        </Space>
+      );
+    }
+    if (ext) {
+      return (
+        <Space size={6} wrap>
+          <Button
+            size="small"
+            type="primary"
+            disabled={busy}
+            onClick={() =>
+              act(() => api.post(`/tasks/extensions/${ext.id}/decide`, { decision: 'APPROVED' }), 'Đã chấp thuận gia hạn')
+            }
+          >
+            Gia hạn
+          </Button>
+          <Popconfirm
+            title="Không chấp thuận gia hạn?"
+            description={<Input.TextArea id={`ex-${ext.id}`} placeholder="Lý do" />}
+            onConfirm={() =>
+              act(
+                () => api.post(`/tasks/extensions/${ext.id}/decide`, { decision: 'REJECTED', note: noteValue(`ex-${ext.id}`) }),
+                'Đã trả lời đề nghị',
+              )
+            }
+          >
+            <Button size="small" disabled={busy}>
+              Không
+            </Button>
+          </Popconfirm>
+        </Space>
+      );
+    }
+    return null;
+  };
+
+  const what = (t: TaskRow) => {
+    const sub = submissionOf(t);
+    const ext = extensionOf(t);
+    if (sub) return `Báo cáo của ${sub.submittedBy.fullName} · ${dayjs(sub.createdAt).format('DD/MM HH:mm')}`;
+    if (ext) return `${ext.requestedBy.fullName} xin gia hạn đến ${dayjs(ext.newDueDate).format(DATE_FORMAT)}: ${ext.reason}`;
+    return '';
+  };
+
+  return (
+    <>
+      <div className="filter-bar">
+        <Button type="primary" disabled={!selected.length || busy} onClick={approveSelected}>
+          Duyệt Đạt {selected.length ? `(${selected.length})` : ''}
+        </Button>
+        <span className="muted">Chọn các báo cáo đã xem rồi duyệt một lần; trả lại thì làm từng báo cáo kèm nhận xét.</span>
+      </div>
+      <Table<TaskRow>
+        rowKey="id"
+        loading={isLoading}
+        dataSource={items}
+        pagination={false}
+        scroll={{ x: 760 }}
+        locale={{ emptyText: 'Không có báo cáo, đề nghị nào chờ đồng chí xử lý' }}
+        rowSelection={{
+          selectedRowKeys: selected,
+          onChange: (keys) => setSelected(keys as number[]),
+          // Chỉ chọn được việc có báo cáo chờ duyệt (đề nghị gia hạn xử lý riêng).
+          getCheckboxProps: (t) => ({ disabled: !submissionOf(t) }),
+        }}
+        columns={[
+          {
+            title: 'Nhiệm vụ',
+            render: (_, t) => (
+              <>
+                <Link to={`/tasks/${t.id}`} className="task-link">
+                  {t.title}
+                </Link>
+                <div className="muted">{what(t)}</div>
+              </>
+            ),
+          },
+          {
+            title: 'Hạn',
+            dataIndex: 'dueDate',
+            width: 130,
+            render: (d: string, t) => <DueTag dueDate={d} status={t.status} />,
+          },
+          { title: '', width: 190, render: (_, t) => actions(t) },
+        ]}
+      />
     </>
   );
 }

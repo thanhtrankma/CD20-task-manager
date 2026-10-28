@@ -287,3 +287,9 @@ a.stat:hover { border-color: #bfdbfe; box-shadow: 0 20px 40px -24px rgba(37, 99,
 .todo-today .todo-group-title { color: #c2410c; }
 .todo-review .todo-group-title, .todo-returned .todo-group-title { color: #b45309; }
 @media (max-width: 640px) { .todo-groups { padding: 0 14px 12px; } }
+
+/* ---------- Cây đơn vị ---------- */
+.unit-node { display: flex; align-items: center; gap: 8px; min-height: 30px; }
+.unit-node .unit-actions { margin-left: auto; opacity: 0.35; transition: opacity 0.15s; }
+.unit-node:hover .unit-actions, .unit-node:focus-within .unit-actions { opacity: 1; }
+@media (hover: none) { .unit-node .unit-actions { opacity: 1; } }

@@ -109,4 +109,19 @@ export class SubmissionsService {
       `/tasks/${task.id}`,
     );
   }
+
+  /** Duyệt "Đạt" nhiều báo cáo; báo cáo nào không duyệt được (không có quyền, đã xử lý) thì trả lý do, các báo cáo khác vẫn duyệt. */
+  async approveMany(user: AuthUser, ids: number[]) {
+    const failed: { id: number; message: string }[] = [];
+    let approved = 0;
+    for (const id of [...new Set(ids)]) {
+      try {
+        await this.review(user, id, { decision: 'APPROVED' });
+        approved++;
+      } catch (err) {
+        failed.push({ id, message: (err as Error).message });
+      }
+    }
+    return { approved, failed };
+  }
 }

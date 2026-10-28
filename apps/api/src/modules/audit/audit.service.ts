@@ -27,10 +27,32 @@ export class AuditService {
     }
   }
 
-  async list(query: { page: number; pageSize: number; userId?: number; action?: string }) {
+  async list(query: {
+    page: number;
+    pageSize: number;
+    userId?: number;
+    action?: string;
+    from?: string;
+    to?: string;
+    result?: 'ok' | 'error';
+  }) {
+    // Thao tác thất bại: kết quả "error:..." hoặc các sự kiện đăng nhập thất bại, bị khóa.
+    const failedLogin = { action: { in: ['LOGIN_FAILED', 'LOGIN_FAILED_LOCKED', 'LOGIN_LOCKED'] } };
+    const errorResult: Prisma.AuditLogWhereInput = { detail: { path: ['result'], string_starts_with: 'error' } };
+    const failed: Prisma.AuditLogWhereInput = { OR: [errorResult, failedLogin] };
+    // Thành công: viết riêng vì NOT trên trường JSON loại luôn các dòng không có chi tiết (NULL), vd. LOGIN.
+    const succeeded: Prisma.AuditLogWhereInput = {
+      AND: [{ NOT: failedLogin }, { OR: [{ detail: { equals: Prisma.DbNull } }, { NOT: errorResult }] }],
+    };
     const where: Prisma.AuditLogWhereInput = {
-      userId: query.userId,
-      action: query.action ? { contains: query.action } : undefined,
+      AND: [
+        {
+          userId: query.userId,
+          action: query.action ? { contains: query.action, mode: 'insensitive' } : undefined,
+          createdAt: { gte: query.from ? new Date(query.from) : undefined, lte: query.to ? new Date(query.to) : undefined },
+        },
+        query.result === 'error' ? failed : query.result === 'ok' ? succeeded : {},
+      ],
     };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.auditLog.findMany({

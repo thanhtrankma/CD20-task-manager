@@ -41,7 +41,7 @@ export const TODO_REASON: Record<TodoReason, string> = {
   review: 'Chờ đồng chí duyệt, xem xét',
   returned: 'Bị trả lại, cần làm tiếp',
   soon: 'Sắp đến hạn (3 ngày)',
-  new: 'Mới được giao, chưa xác nhận nhận',
+  new: 'Mới được giao, chưa xác nhận',
 };
 
 export const ROLE: Record<Role, string> = {

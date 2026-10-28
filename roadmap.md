@@ -101,12 +101,12 @@ dụng khác: xem [docs/tham-khao-ung-dung-giao-viec.md](docs/tham-khao-ung-dung
 - [x] **B10. Dòng hoạt động** trong chi tiết nhiệm vụ: giao, nhận, tiến độ, đổi hạn, nộp, duyệt, bình luận theo thời gian
 
 ### Tuần 5: Duyệt, đơn vị, quản trị
-- [ ] **B11. Duyệt nhanh, duyệt hàng loạt** trong mục *Chờ duyệt*
-- [ ] **B12. Theo dõi việc giao cho đơn vị**: người giao thấy tiến độ việc con do chỉ huy đơn vị phân tiếp
-- [ ] **B13. Quản lý đơn vị dạng cây**: sửa, ẩn đơn vị; chuyển cán bộ giữa các đơn vị
-- [ ] **B14. Quản lý tài khoản**: khóa/mở khóa, đặt lại xác thực hai lớp khi cán bộ mất điện thoại (có ghi nhật ký);
+- [x] **B11. Duyệt nhanh, duyệt hàng loạt** trong mục *Chờ duyệt*
+- [x] **B12. Theo dõi việc giao cho đơn vị**: người giao thấy tiến độ việc con do chỉ huy đơn vị phân tiếp
+- [x] **B13. Quản lý đơn vị dạng cây**: sửa, ẩn đơn vị; chuyển cán bộ giữa các đơn vị
+- [x] **B14. Quản lý tài khoản**: khóa/mở khóa, đặt lại xác thực hai lớp khi cán bộ mất điện thoại (có ghi nhật ký);
       **nhập danh sách từ Excel** theo mẫu
-- [ ] **B15. Tra cứu nhật ký**: lọc theo người, thao tác, thời gian
+- [x] **B15. Tra cứu nhật ký**: lọc theo người, thao tác, thời gian
 
 ### Tuần 6: Thống kê, hướng dẫn
 - [ ] **B16. Thống kê 4 nhóm** theo đơn vị, cá nhân, theo tháng: hoàn thành đúng hạn, hoàn thành quá hạn,
@@ -139,10 +139,12 @@ Mục tiêu: cán bộ cài ứng dụng của Nhà trường, nhận nhắc vi�
 Ứng dụng viết bằng **Flutter** (một mã nguồn cho Android và iOS), gọi chung API với bản web.
 
 ### Tuần 11: Nền tảng ứng dụng (làm sớm, song song với giai đoạn B)
-- [~] **E1. Ứng dụng Flutter** (`apps/mobile`): đăng nhập (kèm OTP), Việc của tôi, chi tiết nhiệm vụ với thao tác một chạm,
+- [x] **E1. Ứng dụng Flutter** (`apps/mobile`): đăng nhập (kèm OTP), Việc của tôi, chi tiết nhiệm vụ với thao tác một chạm,
       thông báo, tài khoản; biểu tượng theo logo trường. Dùng chung API với bản web
-- [~] **E2. Đăng nhập trên ứng dụng**: mã phiên lưu trong **kho bảo mật của điện thoại** (Keychain trên iOS, Keystore trên
+- [x] **E2. Đăng nhập trên ứng dụng**: mã phiên lưu trong **kho bảo mật của điện thoại** (Keychain trên iOS, Keystore trên
       Android); dùng chung bảng phiên, chung cơ chế thu hồi khi đăng xuất. Bản phát hành chỉ kết nối HTTPS
+  (đợt 1 xong 28/10/2026: 48 kiểm thử, chạy được trên iOS Simulator với API thật; chưa thử trên máy thật, Android
+  emulator. Việc API cần làm thêm cho thông báo đẩy: `apps/mobile/API-NEEDS.md`)
 
 ### Tuần 12 – 13: Thông báo đẩy
 - [ ] **E3. Bảng thiết bị** (Android/iOS, mã thiết bị); đăng ký khi đăng nhập, xóa khi đăng xuất

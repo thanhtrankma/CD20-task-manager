@@ -1,7 +1,7 @@
 import { Body, Controller, HttpCode, Param, ParseIntPipe, Post } from '@nestjs/common';
 import { CurrentUser, Roles } from '../../common/decorators';
 import type { AuthUser } from '../../common/types';
-import { CreateSubmissionDto, ReviewSubmissionDto } from './submissions.dto';
+import { BatchApproveDto, CreateSubmissionDto, ReviewSubmissionDto } from './submissions.dto';
 import { SubmissionsService } from './submissions.service';
 
 @Controller()
@@ -16,6 +16,12 @@ export class SubmissionsController {
     @Body() dto: CreateSubmissionDto,
   ) {
     return this.submissions.create(user, taskId, dto);
+  }
+
+  @Post('submissions/approve-batch')
+  @HttpCode(200)
+  approveBatch(@CurrentUser() user: AuthUser, @Body() dto: BatchApproveDto) {
+    return this.submissions.approveMany(user, dto.submissionIds);
   }
 
   @Post('submissions/:id/review')

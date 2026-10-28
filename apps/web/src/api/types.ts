@@ -38,6 +38,8 @@ export interface UserRow {
   isActive: boolean;
   totpEnabled: boolean;
   lastLoginAt: string | null;
+  /** Bị khóa tạm do nhập sai mật khẩu nhiều lần (đến thời điểm này). */
+  lockedUntil: string | null;
   unit: { id: number; name: string };
 }
 
@@ -102,6 +104,9 @@ export interface TaskRow {
   overdue: boolean;
   createdBy: Person;
   assignees: Assignee[];
+  /** Báo cáo, đề nghị gia hạn đang chờ (danh sách chỉ kèm cái mới nhất), để duyệt nhanh. */
+  submissions?: { id: number; createdAt: string; submittedBy: Person }[];
+  extensionRequests?: { id: number; newDueDate: string; reason: string; requestedBy: Person }[];
 }
 
 export type TodoReason = 'overdue' | 'today' | 'review' | 'returned' | 'soon' | 'new';
@@ -125,13 +130,15 @@ export interface FileRef {
   size: number;
 }
 
-export interface TaskDetail extends TaskRow {
+export interface TaskDetail extends Omit<TaskRow, 'submissions' | 'extensionRequests'> {
   description: string | null;
   /** Căn cứ giao nhiệm vụ (số hiệu văn bản, kết luận giao ban). */
   source: string | null;
   createdAt: string;
   parent: { id: number; title: string } | null;
-  children: Pick<TaskRow, 'id' | 'title' | 'status' | 'dueDate' | 'progress'>[];
+  children: (Pick<TaskRow, 'id' | 'title' | 'status' | 'dueDate' | 'progress' | 'createdBy'> & {
+    assignees: Pick<Assignee, 'role' | 'user' | 'unit' | 'acknowledgedAt'>[];
+  })[];
   updates: { id: number; progress: number; note: string | null; createdAt: string; user: Person }[];
   submissions: {
     id: number;

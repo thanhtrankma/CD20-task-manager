@@ -31,12 +31,35 @@ const LIST_INCLUDE = {
   assignees: {
     include: { user: PERSON, unit: { select: { id: true, name: true } }, acknowledgedBy: PERSON },
   },
+  // Báo cáo, đề nghị gia hạn đang chờ: để duyệt nhanh ngay trên danh sách.
+  submissions: {
+    where: { status: 'PENDING' },
+    select: { id: true, createdAt: true, submittedBy: PERSON },
+    orderBy: { createdAt: 'desc' },
+    take: 1,
+  },
+  extensionRequests: {
+    where: { status: 'PENDING' },
+    select: { id: true, newDueDate: true, reason: true, requestedBy: PERSON },
+    take: 1,
+  },
 } satisfies Prisma.TaskInclude;
 
 const DETAIL_INCLUDE = {
   ...LIST_INCLUDE,
   parent: { select: { id: true, title: true } },
-  children: { select: { id: true, title: true, status: true, dueDate: true, progress: true } },
+  children: {
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      dueDate: true,
+      progress: true,
+      createdBy: PERSON,
+      assignees: { select: { role: true, user: PERSON, unit: { select: { id: true, name: true } }, acknowledgedAt: true } },
+    },
+    orderBy: { dueDate: 'asc' },
+  },
   updates: { include: { user: PERSON }, orderBy: { createdAt: 'desc' } },
   submissions: {
     include: {

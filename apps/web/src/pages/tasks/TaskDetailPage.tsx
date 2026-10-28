@@ -275,13 +275,27 @@ export function TaskDetailPage() {
               </Descriptions>
               {task.children.length > 0 && (
                 <ItemList
-                  header="Việc con"
+                  header={`Việc con: ${task.children.filter((c) => c.status === 'DONE').length}/${task.children.length} hoàn thành`}
                   items={task.children}
                   rowKey={(c) => c.id}
                   renderItem={(c) => (
                     <ItemRow
                       title={<Link to={`/tasks/${c.id}`}>{c.title}</Link>}
-                      actions={<StatusPill status={c.status} />}
+                      description={
+                        <>
+                          {c.assignees.filter((a) => a.role === 'LEAD').map(assigneeLabel).join(', ')}
+                          {c.assignees.some((a) => !a.acknowledgedAt) && c.status === 'NEW' && ' · chưa nhận'}
+                          {' · giao bởi '}
+                          {c.createdBy.fullName}
+                          <Progress percent={c.progress} size="small" strokeColor="#2563eb" />
+                        </>
+                      }
+                      actions={
+                        <>
+                          <DueTag dueDate={c.dueDate} status={c.status} />
+                          <StatusPill status={c.status} />
+                        </>
+                      }
                     />
                   )}
                 />

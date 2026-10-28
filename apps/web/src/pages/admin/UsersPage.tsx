@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Form, Input, Modal, Select, Space, Switch, Table, TreeSelect } from 'antd';
-import { Plus } from 'lucide-react';
+import { App, Button, Dropdown, Form, Input, Modal, Select, Space, Switch, Table, TreeSelect } from 'antd';
+import { FileSpreadsheet, MoreHorizontal, Plus } from 'lucide-react';
 import dayjs from 'dayjs';
 import { useState } from 'react';
 import { api } from '../../api/client';
@@ -9,6 +9,7 @@ import { DATETIME_FORMAT, ROLE } from '../../constants';
 import { buildUnitTree } from '../../utils/units';
 import { Pill } from '../../components/Pill';
 import { PageHeader, Panel } from '../../layouts/shell';
+import { ImportUsersModal } from './ImportUsersModal';
 
 const PASSWORD_RULES = [
   { required: true },
@@ -20,7 +21,10 @@ export function UsersPage() {
   const { message, modal } = App.useApp();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [editing, setEditing] = useState<UserRow | null>(null);
   const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
   const users = useQuery({ queryKey: ['users'], queryFn: () => api.get<UserRow[]>('/users') });
   const units = useQuery({ queryKey: ['units'], queryFn: () => api.get<Unit[]>('/units') });
   const refresh = () => qc.invalidateQueries({ queryKey: ['users'] });
@@ -35,6 +39,35 @@ export function UsersPage() {
     },
     onError: (e) => message.error(e.message),
   });
+
+  const update = useMutation({
+    mutationFn: (v: Record<string, unknown>) =>
+      api.patch(`/users/${editing!.id}`, { ...v, email: v.email || null }),
+    onSuccess: async () => {
+      message.success('Đã lưu. Đổi đơn vị, vai trò thì người dùng phải đăng nhập lại.');
+      setEditing(null);
+      await refresh();
+    },
+    onError: (e) => message.error(e.message),
+  });
+
+  /** Thao tác có xác nhận: mở khóa, đặt lại xác thực hai lớp. */
+  const confirmAction = (title: string, content: string, fn: () => Promise<unknown>, ok: string) =>
+    modal.confirm({
+      title,
+      content,
+      okText: 'Đồng ý',
+      onOk: async () => {
+        await fn().catch((e) => {
+          message.error(e.message);
+          throw e;
+        });
+        message.success(ok);
+        await refresh();
+      },
+    });
+
+  const locked = (u: UserRow) => !!u.lockedUntil && dayjs(u.lockedUntil).isAfter(dayjs());
 
   const toggleActive = async (u: UserRow, isActive: boolean) => {
     try {
@@ -72,9 +105,14 @@ export function UsersPage() {
         title="Tài khoản"
         subtitle={users.data ? `${users.data.length} tài khoản` : undefined}
         actions={
-          <Button type="primary" icon={<Plus size={16} />} onClick={() => setOpen(true)}>
-            <span className="hide-xs">Thêm tài khoản</span>
-          </Button>
+          <Space>
+            <Button icon={<FileSpreadsheet size={16} />} onClick={() => setImporting(true)}>
+              <span className="hide-xs">Nhập từ Excel</span>
+            </Button>
+            <Button type="primary" icon={<Plus size={16} />} onClick={() => setOpen(true)}>
+              <span className="hide-xs">Thêm tài khoản</span>
+            </Button>
+          </Space>
         }
       />
       <div className="shell-content">
@@ -107,16 +145,58 @@ export function UsersPage() {
                 title: 'Hoạt động',
                 dataIndex: 'isActive',
                 width: 100,
-                render: (v: boolean, u) => <Switch checked={v} onChange={(c) => toggleActive(u, c)} />,
+                render: (v: boolean, u) => (
+                  <Space size={6}>
+                    <Switch checked={v} onChange={(c) => toggleActive(u, c)} />
+                    {locked(u) && <Pill tone={{ label: 'Đang khóa', bg: '#fff1f2', fg: '#be123c' }} />}
+                  </Space>
+                ),
               },
               {
                 title: '',
-                width: 140,
+                width: 110,
                 render: (_, u) => (
-                  <Space>
-                    <Button size="small" onClick={() => resetPassword(u)}>
-                      Đặt lại mật khẩu
+                  <Space size={4}>
+                    <Button size="small" onClick={() => {
+                      setEditing(u);
+                      editForm.setFieldsValue({ ...u, email: u.email ?? undefined });
+                    }}>
+                      Sửa
                     </Button>
+                    <Dropdown
+                      trigger={['click']}
+                      menu={{
+                        items: [
+                          { key: 'pw', label: 'Đặt lại mật khẩu', onClick: () => resetPassword(u) },
+                          {
+                            key: 'unlock',
+                            label: 'Mở khóa đăng nhập',
+                            disabled: !locked(u),
+                            onClick: () =>
+                              confirmAction(
+                                `Mở khóa ${u.fullName}?`,
+                                'Tài khoản bị khóa tạm do nhập sai mật khẩu nhiều lần. Chỉ mở khi đã xác minh đúng người.',
+                                () => api.post(`/users/${u.id}/unlock`),
+                                'Đã mở khóa',
+                              ),
+                          },
+                          {
+                            key: '2fa',
+                            label: 'Đặt lại xác thực hai lớp',
+                            disabled: !u.totpEnabled,
+                            onClick: () =>
+                              confirmAction(
+                                `Đặt lại xác thực hai lớp cho ${u.fullName}?`,
+                                'Dùng khi cán bộ mất hoặc đổi điện thoại. Mọi phiên đăng nhập bị thu hồi; lần đăng nhập sau phải bật lại. Chỉ làm khi đã xác minh trực tiếp đúng người.',
+                                () => api.post(`/users/${u.id}/reset-2fa`),
+                                'Đã đặt lại xác thực hai lớp',
+                              ),
+                          },
+                        ],
+                      }}
+                    >
+                      <Button size="small" icon={<MoreHorizontal size={14} />} aria-label="Thao tác khác" />
+                    </Dropdown>
                   </Space>
                 ),
               },
@@ -165,6 +245,39 @@ export function UsersPage() {
           </Form.Item>
         </Form>
       </Modal>
+      <Modal
+        open={!!editing}
+        title={`Sửa tài khoản ${editing?.username ?? ''}`}
+        okText="Lưu"
+        onOk={() => editForm.submit()}
+        onCancel={() => setEditing(null)}
+        confirmLoading={update.isPending}
+        destroyOnHidden
+      >
+        <Form form={editForm} layout="vertical" onFinish={(v) => update.mutate(v)}>
+          <Form.Item name="fullName" label="Họ tên" rules={[{ required: true, min: 2 }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="email" label="Thư điện tử (nhận nhắc việc)" rules={[{ type: 'email', message: 'Địa chỉ thư không hợp lệ' }]}>
+            <Input placeholder="Không bắt buộc" />
+          </Form.Item>
+          <Space.Compact block>
+            <Form.Item name="rank" label="Cấp bậc" style={{ flex: 1 }}>
+              <Input />
+            </Form.Item>
+            <Form.Item name="position" label="Chức vụ" style={{ flex: 1 }}>
+              <Input />
+            </Form.Item>
+          </Space.Compact>
+          <Form.Item name="unitId" label="Đơn vị" rules={[{ required: true }]} extra="Chuyển cán bộ sang đơn vị khác">
+            <TreeSelect treeData={buildUnitTree(units.data ?? [])} treeDefaultExpandAll />
+          </Form.Item>
+          <Form.Item name="role" label="Vai trò" rules={[{ required: true }]}>
+            <Select options={Object.entries(ROLE).map(([value, label]) => ({ value, label }))} />
+          </Form.Item>
+        </Form>
+      </Modal>
+      <ImportUsersModal open={importing} onClose={() => setImporting(false)} />
     </>
   );
 }
