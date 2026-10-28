@@ -26,7 +26,7 @@ export function UsersPage() {
   const refresh = () => qc.invalidateQueries({ queryKey: ['users'] });
 
   const create = useMutation({
-    mutationFn: (v: Record<string, unknown>) => api.post('/users', v),
+    mutationFn: (v: Record<string, unknown>) => api.post('/users', { ...v, email: v.email || undefined }),
     onSuccess: async () => {
       message.success('Đã tạo tài khoản. Người dùng phải đổi mật khẩu ở lần đăng nhập đầu.');
       setOpen(false);
@@ -83,10 +83,11 @@ export function UsersPage() {
             rowKey="id"
             loading={users.isLoading}
             dataSource={users.data}
-            scroll={{ x: 900 }}
+            scroll={{ x: 1100 }}
             columns={[
               { title: 'Họ tên', dataIndex: 'fullName' },
               { title: 'Tên đăng nhập', dataIndex: 'username', width: 140 },
+              { title: 'Thư nhắc việc', dataIndex: 'email', width: 200, render: (e: string | null) => e ?? '—' },
               { title: 'Đơn vị', width: 200, render: (_, u) => u.unit.name },
               { title: 'Vai trò', dataIndex: 'role', width: 150, render: (r: Role) => ROLE[r] },
               {
@@ -141,6 +142,9 @@ export function UsersPage() {
           </Form.Item>
           <Form.Item name="fullName" label="Họ tên" rules={[{ required: true }]}>
             <Input />
+          </Form.Item>
+          <Form.Item name="email" label="Thư điện tử (nhận nhắc việc)" rules={[{ type: 'email', message: 'Địa chỉ thư không hợp lệ' }]}>
+            <Input placeholder="Không bắt buộc" />
           </Form.Item>
           <Space.Compact block>
             <Form.Item name="rank" label="Cấp bậc" style={{ flex: 1 }}>

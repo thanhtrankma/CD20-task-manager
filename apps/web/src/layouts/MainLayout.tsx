@@ -12,7 +12,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import type { DashboardSummary } from '../api/types';
@@ -20,6 +20,7 @@ import { useAuth } from '../auth/AuthContext';
 import { ORG } from '../config/org';
 import { ROLE } from '../constants';
 import { CreateTaskModal } from '../pages/tasks/CreateTaskModal';
+import { syncPush } from '../push';
 import { ShellContext } from './shell';
 
 interface NavEntry {
@@ -64,6 +65,11 @@ export function MainLayout() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [creating, setCreating] = useState<{ parentId?: number } | null>(null);
+
+  // Gắn lại thiết bị đã bật thông báo cho người vừa đăng nhập.
+  useEffect(() => {
+    if (me) void syncPush();
+  }, [me?.id]);
 
   const isAdmin = me?.role === 'ADMIN';
   const canAssign = me?.role === 'LEADER' || me?.role === 'UNIT_HEAD';
@@ -152,7 +158,7 @@ export function MainLayout() {
             <NavGroup
               label="Cá nhân"
               onNavigate={close}
-              items={[{ to: '/profile', label: 'Bảo mật tài khoản', icon: ShieldCheck }]}
+              items={[{ to: '/profile', label: 'Tài khoản & nhắc việc', icon: ShieldCheck }]}
             />
           </nav>
 

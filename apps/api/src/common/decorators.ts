@@ -14,6 +14,10 @@ export const ALLOW_PENDING_PASSWORD = 'allowPendingPassword';
 /** Cho phép gọi khi tài khoản còn phải đổi mật khẩu (me, logout, change-password). */
 export const AllowPendingPassword = () => SetMetadata(ALLOW_PENDING_PASSWORD, true);
 
+export const ALLOW_PENDING_2FA = 'allowPending2fa';
+/** Cho phép gọi khi vai trò bắt buộc xác thực hai lớp nhưng chưa bật (me, logout, bật 2FA). */
+export const AllowPendingTwoFactor = () => SetMetadata(ALLOW_PENDING_2FA, true);
+
 export const SKIP_AUDIT = 'skipAudit';
 /** Bỏ qua AuditInterceptor (route tự ghi nhật ký, ví dụ đăng nhập). */
 export const SkipAudit = () => SetMetadata(SKIP_AUDIT, true);

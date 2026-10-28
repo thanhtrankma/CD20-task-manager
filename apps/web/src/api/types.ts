@@ -9,8 +9,13 @@ export interface Me {
   role: Role;
   unitId: number;
   unit: { id: number; name: string };
+  email: string | null;
   mustChangePassword: boolean;
   totpEnabled: boolean;
+  /** Vai trò bắt buộc dùng xác thực hai lớp (không được tắt). */
+  twoFactorMandatory: boolean;
+  /** Vai trò bắt buộc xác thực hai lớp nhưng chưa bật: phải bật trước khi dùng. */
+  twoFactorRequired: boolean;
 }
 
 export interface Unit {
@@ -27,6 +32,7 @@ export interface UserRow {
   fullName: string;
   rank: string | null;
   position: string | null;
+  email: string | null;
   role: Role;
   unitId: number;
   isActive: boolean;
@@ -107,4 +113,9 @@ export interface DashboardSummary {
   overdue: number;
   dueSoon: number;
   byUnit: { unitId: number; name: string; total: number; done: number; overdue: number }[];
+}
+
+export interface NotificationSettings {
+  push: { enabled: boolean; publicKey: string; devices: number };
+  email: { enabled: boolean; address: string | null };
 }

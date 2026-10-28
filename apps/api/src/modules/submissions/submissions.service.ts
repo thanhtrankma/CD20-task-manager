@@ -53,7 +53,7 @@ export class SubmissionsService {
 
     await this.notifications.notify(
       [task.createdById],
-      'Có báo cáo mới chờ duyệt',
+      'Có báo cáo mới chờ đồng chí duyệt',
       task.title,
       `/tasks/${taskId}`,
     );
@@ -93,7 +93,7 @@ export class SubmissionsService {
 
     await this.notifications.notify(
       [submission.submittedById],
-      approved ? 'Báo cáo đã được duyệt' : 'Báo cáo bị trả lại',
+      approved ? 'Báo cáo của đồng chí đã được duyệt' : 'Báo cáo của đồng chí bị trả lại',
       dto.note ?? task.title,
       `/tasks/${task.id}`,
     );

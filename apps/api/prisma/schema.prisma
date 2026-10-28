@@ -74,6 +74,7 @@ model User {
   fullName           String    @map("full_name")
   rank               String? // Cấp bậc
   position           String? // Chức vụ
+  email              String? // Nhận nhắc việc qua thư điện tử (nên dùng hộp thư nội bộ)
   unitId             Int       @map("unit_id")
   role               Role      @default(STAFF)
   passwordHash       String    @map("password_hash")
@@ -99,6 +100,7 @@ model User {
   attachments        Attachment[]
   comments           Comment[]
   notifications      Notification[]
+  pushSubscriptions  PushSubscription[]
   auditLogs          AuditLog[]
 
   @@index([unitId])
@@ -273,7 +275,25 @@ model Notification {
   @@map("notifications")
 }
 
-// Nhật ký thao tác: chỉ ghi thêm. Giai đoạn 2 sẽ thêm trigger chặn UPDATE/DELETE.
+// Thiết bị (trình duyệt, điện thoại) đã bật nhận thông báo đẩy (Web Push).
+model PushSubscription {
+  id         Int       @id @default(autoincrement())
+  userId     Int       @map("user_id")
+  endpoint   String    @unique
+  p256dh     String
+  auth       String
+  userAgent  String?   @map("user_agent")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  lastUsedAt DateTime? @map("last_used_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+// Nhật ký thao tác: chỉ ghi thêm. Trigger trong migration audit_log_append_only chặn UPDATE, DELETE, TRUNCATE
+// (vì vậy không xóa được tài khoản đã có nhật ký: chỉ vô hiệu hóa).
 model AuditLog {
   id        BigInt   @id @default(autoincrement())
   userId    Int?     @map("user_id")

@@ -15,6 +15,7 @@ import { api } from '../api/client';
 import type { DashboardSummary, Paged, TaskRow, TaskStatus } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import { ItemList, ItemRow } from '../components/ItemList';
+import { EnablePushBanner } from '../components/NotificationSettings';
 import { OverduePill, StatusPill } from '../components/Pill';
 import { DATE_FORMAT } from '../constants';
 import { PageHeader, Panel } from '../layouts/shell';
@@ -76,6 +77,7 @@ export function DashboardPage() {
     <>
       <PageHeader title="Tổng quan" subtitle={`${greeting()}, ${me?.fullName}. Hôm nay ${dayjs().format('dddd, DD/MM/YYYY')}.`} />
       <div className="shell-content">
+        <EnablePushBanner />
         <div className="stat-grid">
           <Stat label="Mới giao" value={s?.NEW ?? 0} icon={Inbox} tone="tone-blue" to="/tasks?status=NEW" />
           <Stat label="Đang thực hiện" value={s?.IN_PROGRESS ?? 0} icon={CircleDot} tone="tone-indigo" to="/tasks?status=IN_PROGRESS" />

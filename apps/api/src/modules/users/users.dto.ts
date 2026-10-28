@@ -2,6 +2,7 @@ import { Role } from '../../generated/prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsEmail,
   IsEnum,
   IsInt,
   IsOptional,
@@ -19,6 +20,7 @@ export class CreateUserDto {
   @IsString() @Length(2, 255) fullName: string;
   @IsOptional() @IsString() @MaxLength(100) rank?: string;
   @IsOptional() @IsString() @MaxLength(255) position?: string;
+  @IsOptional() @IsEmail({}, { message: 'Địa chỉ thư không hợp lệ' }) email?: string;
   @IsInt() unitId: number;
   @IsEnum(Role) role: Role;
   /** Mật khẩu tạm; người dùng phải đổi ở lần đăng nhập đầu. */
@@ -29,6 +31,7 @@ export class UpdateUserDto {
   @IsOptional() @IsString() @Length(2, 255) fullName?: string;
   @IsOptional() @IsString() @MaxLength(100) rank?: string;
   @IsOptional() @IsString() @MaxLength(255) position?: string;
+  @IsOptional() @IsEmail({}, { message: 'Địa chỉ thư không hợp lệ' }) email?: string | null;
   @IsOptional() @IsInt() unitId?: number;
   @IsOptional() @IsEnum(Role) role?: Role;
   @IsOptional() @IsBoolean() isActive?: boolean;

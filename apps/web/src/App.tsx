@@ -13,12 +13,14 @@ import { LoginPage } from './pages/LoginPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { TaskDetailPage } from './pages/tasks/TaskDetailPage';
 import { TasksPage } from './pages/tasks/TasksPage';
+import { TwoFactorPage } from './pages/TwoFactorPage';
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { me, loading } = useAuth();
   if (loading) return <Spin fullscreen />;
   if (!me) return <Navigate to="/login" replace />;
   if (me.mustChangePassword) return <ChangePasswordPage forced />;
+  if (me.twoFactorRequired) return <TwoFactorPage forced />;
   return children;
 }
 

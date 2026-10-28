@@ -4,6 +4,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AuditInterceptor } from './common/audit.interceptor';
+import { env } from './env';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
@@ -18,7 +19,7 @@ import { PrismaModule } from './prisma/prisma.module';
 @Module({
   imports: [
     ScheduleModule.forRoot(),
-    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: env.rateLimit }]),
     PrismaModule,
     AuditModule,
     AuthModule,

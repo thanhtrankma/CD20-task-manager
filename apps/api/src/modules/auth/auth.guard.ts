@@ -7,13 +7,15 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Role } from '../../generated/prisma/client';
-import { ALLOW_PENDING_PASSWORD, IS_PUBLIC, ROLES } from '../../common/decorators';
+import { ALLOW_PENDING_2FA, ALLOW_PENDING_PASSWORD, IS_PUBLIC, ROLES } from '../../common/decorators';
+import { twoFactorMissing } from '../../common/two-factor';
 import type { AuthRequest } from '../../common/types';
 import { SESSION_COOKIE, SessionService } from './session.service';
 
 /**
  * Guard toàn cục: mặc định mọi route đều phải đăng nhập (trừ @Public),
- * kiểm tra vai trò (@Roles) và chặn tài khoản chưa đổi mật khẩu lần đầu.
+ * kiểm tra vai trò (@Roles), chặn tài khoản chưa đổi mật khẩu lần đầu
+ * và tài khoản thuộc vai trò bắt buộc xác thực hai lớp nhưng chưa bật.
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -38,6 +40,13 @@ export class AuthGuard implements CanActivate {
       throw new ForbiddenException({
         code: 'PASSWORD_CHANGE_REQUIRED',
         message: 'Cần đổi mật khẩu trước khi sử dụng',
+      });
+    }
+
+    if (twoFactorMissing(user) && !this.reflector.getAllAndOverride<boolean>(ALLOW_PENDING_2FA, targets)) {
+      throw new ForbiddenException({
+        code: 'TWO_FACTOR_REQUIRED',
+        message: 'Cần bật xác thực hai lớp trước khi sử dụng',
       });
     }
 

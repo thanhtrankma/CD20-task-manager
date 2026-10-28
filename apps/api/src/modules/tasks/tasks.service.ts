@@ -107,7 +107,7 @@ export class TasksService {
     });
     await this.notifications.notify(
       await this.access.recipients(task.id),
-      'Bạn được giao việc mới',
+      'Đồng chí được giao nhiệm vụ mới',
       task.title,
       `/tasks/${task.id}`,
     );

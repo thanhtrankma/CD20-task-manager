@@ -12,6 +12,8 @@
     "start": "node dist/main.js",
     "dev": "nest start --watch",
     "typecheck": "tsc --noEmit",
+    "pretest": "npm run build",
+    "test": "node --test --test-concurrency=1 --test-global-setup=test/global-setup.mts \"test/**/*.test.mts\"",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
@@ -31,11 +33,13 @@
     "class-validator": "^0.15.1",
     "cookie-parser": "^1.4.7",
     "helmet": "^8.1.0",
+    "nodemailer": "^10.2.1",
     "otplib": "^13.5.0",
     "prisma": "^7.10.1",
     "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@nestjs/cli": "^12.0.10",
@@ -43,7 +47,12 @@
     "@types/express": "^5.0.0",
     "@types/multer": "^2.0.0",
     "@types/node": "^24.19.2",
+    "@types/nodemailer": "^8.0.2",
     "@types/qrcode": "^1.5.5",
+    "@types/web-push": "^3.6.4",
+    "http_ece": "^1.2.1",
+    "pg": "^8.23.1",
+    "smtp-server": "^3.21.1",
     "tsx": "^4.20.0",
     "typescript": "~6.0"
   }

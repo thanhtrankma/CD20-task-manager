@@ -27,6 +27,28 @@ export const env = {
   maxUploadMb: Number(process.env.MAX_UPLOAD_MB ?? 20),
   /** Số lần gọi /auth/login tối đa mỗi phút mỗi IP. */
   loginRateLimit: Number(process.env.LOGIN_RATE_LIMIT ?? 5),
+  /** Vai trò bắt buộc bật xác thực hai lớp (phân cách bằng dấu phẩy; để trống = không bắt buộc). */
+  require2faRoles: (process.env.REQUIRE_2FA_ROLES ?? 'ADMIN,LEADER')
+    .split(',')
+    .map((r) => r.trim())
+    .filter(Boolean),
+  /** Số request tối đa mỗi phút mỗi IP cho toàn bộ API. */
+  rateLimit: Number(process.env.RATE_LIMIT ?? 120),
   port: Number(process.env.PORT ?? 3000),
   timezone: process.env.TZ ?? 'Asia/Ho_Chi_Minh',
+  /** Web Push. Thiếu khóa thì tắt thông báo đẩy. Tạo khóa: npx web-push generate-vapid-keys */
+  vapid: {
+    publicKey: process.env.VAPID_PUBLIC_KEY ?? '',
+    privateKey: process.env.VAPID_PRIVATE_KEY ?? '',
+    subject: process.env.VAPID_SUBJECT ?? 'mailto:admin@localhost',
+  },
+  /** Gửi thư nhắc việc. Thiếu SMTP_HOST thì tắt thư điện tử. */
+  smtp: {
+    host: process.env.SMTP_HOST ?? '',
+    port: Number(process.env.SMTP_PORT ?? 587),
+    secure: process.env.SMTP_SECURE === 'true',
+    user: process.env.SMTP_USER ?? '',
+    pass: process.env.SMTP_PASS ?? '',
+    from: process.env.SMTP_FROM ?? 'Hệ thống giao nhiệm vụ <no-reply@localhost>',
+  },
 };

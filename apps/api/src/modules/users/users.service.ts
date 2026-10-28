@@ -14,6 +14,7 @@ const SAFE_FIELDS = {
   fullName: true,
   rank: true,
   position: true,
+  email: true,
   role: true,
   unitId: true,
   isActive: true,

@@ -3,6 +3,7 @@ import type { User } from '../../generated/prisma/client';
 import { generateSecret, generateURI, verify } from 'otplib';
 import * as QRCode from 'qrcode';
 import { decrypt, encrypt } from '../../common/crypto';
+import { twoFactorMandatory, twoFactorMissing } from '../../common/two-factor';
 import {
   assertStrongPassword,
   getDummyHash,
@@ -12,7 +13,7 @@ import {
 import type { AuthUser } from '../../common/types';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
-import { ChangePasswordDto, DisableOtpDto, LoginDto } from './auth.dto';
+import { ChangePasswordDto, DisableOtpDto, LoginDto, UpdateProfileDto } from './auth.dto';
 import { SessionService } from './session.service';
 
 const MAX_FAILED_LOGINS = 5;
@@ -30,10 +31,13 @@ export const toPublicUser = (u: User) => ({
   fullName: u.fullName,
   rank: u.rank,
   position: u.position,
+  email: u.email,
   role: u.role,
   unitId: u.unitId,
   mustChangePassword: u.mustChangePassword,
   totpEnabled: u.totpEnabled,
+  twoFactorMandatory: twoFactorMandatory(u.role),
+  twoFactorRequired: twoFactorMissing(u),
 });
 
 @Injectable()
@@ -103,6 +107,14 @@ export class AuthService {
     return { ...toPublicUser(user), unit: user.unit };
   }
 
+  async updateProfile(auth: AuthUser, dto: UpdateProfileDto) {
+    const user = await this.prisma.user.update({
+      where: { id: auth.id },
+      data: { email: dto.email?.trim().toLowerCase() ?? null },
+    });
+    return toPublicUser(user);
+  }
+
   async changePassword(auth: AuthUser, dto: ChangePasswordDto) {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: auth.id } });
     if (!(await verifyPassword(user.passwordHash, dto.currentPassword))) {
@@ -137,6 +149,9 @@ export class AuthService {
   }
 
   async disableOtp(auth: AuthUser, dto: DisableOtpDto) {
+    if (twoFactorMandatory(auth.role)) {
+      throw new BadRequestException('Vai trò của đồng chí bắt buộc dùng xác thực hai lớp');
+    }
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: auth.id } });
     const ok =
       (await verifyPassword(user.passwordHash, dto.password)) && (await this.checkOtp(user, dto.code));

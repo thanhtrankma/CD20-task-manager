@@ -2,6 +2,7 @@ import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-quer
 import { createContext, useContext, type ReactNode } from 'react';
 import { api, ApiError } from '../api/client';
 import type { Me } from '../api/types';
+import { detachPush } from '../push';
 
 interface AuthValue {
   me: Me | null;
@@ -48,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await refetch();
     },
     logout: async () => {
+      await detachPush();
       await api.post('/auth/logout').catch(() => undefined);
       signOutLocally(qc);
     },

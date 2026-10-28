@@ -6,6 +6,7 @@ export default defineConfig({
   server: {
     port: 5173,
     // Dev: chuyển /api sang NestJS để cookie phiên dùng chung một origin như production.
-    proxy: { '/api': 'http://localhost:3000' },
+    // API_PORT: đổi khi cổng 3000 đã bị dự án khác dùng (vd. API_PORT=3100 npm run dev).
+    proxy: { '/api': `http://localhost:${process.env.API_PORT ?? 3000}` },
   },
 });

@@ -14,9 +14,11 @@ import { App } from './App';
 import { ApiError } from './api/client';
 import { AuthProvider, signOutLocally } from './auth/AuthContext';
 import './styles/global.css';
+import { registerServiceWorker } from './push';
 import { theme } from './theme';
 
 dayjs.locale('vi');
+registerServiceWorker();
 
 const isApiError = (err: unknown, ...status: number[]) => err instanceof ApiError && status.includes(err.status);
 
