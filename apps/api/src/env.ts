@@ -42,6 +42,23 @@ export const env = {
     privateKey: process.env.VAPID_PRIVATE_KEY ?? '',
     subject: process.env.VAPID_SUBJECT ?? 'mailto:admin@localhost',
   },
+  /**
+   * Thông báo đẩy về ứng dụng di động. FCM: tệp khóa tài khoản dịch vụ Firebase (JSON). APNs: khóa .p8 của Apple.
+   * Thiếu cấu hình kênh nào thì tắt kênh đó. *_BASE_URL, APNS_HOST chỉ đổi khi kiểm thử.
+   */
+  fcm: {
+    serviceAccountFile: process.env.FCM_SERVICE_ACCOUNT_FILE ?? '',
+    baseUrl: process.env.FCM_BASE_URL ?? 'https://fcm.googleapis.com',
+  },
+  apns: {
+    keyFile: process.env.APNS_KEY_FILE ?? '',
+    keyId: process.env.APNS_KEY_ID ?? '',
+    teamId: process.env.APNS_TEAM_ID ?? '',
+    bundleId: process.env.APNS_BUNDLE_ID ?? 'vn.cdn20.giaoviec',
+    host:
+      process.env.APNS_HOST ??
+      (process.env.APNS_ENV === 'sandbox' ? 'api.sandbox.push.apple.com' : 'api.push.apple.com'),
+  },
   /** Gửi thư nhắc việc. Thiếu SMTP_HOST thì tắt thư điện tử. */
   smtp: {
     host: process.env.SMTP_HOST ?? '',

@@ -133,6 +133,7 @@ export function NotificationSettings() {
           )}
           <div className="muted" style={{ marginTop: 6 }}>
             Đang nhận trên {data.push.devices} thiết bị. Bật trên từng máy tính, điện thoại đồng chí sử dụng.
+            {!!data.mobile?.devices && <> Ứng dụng "Giao nhiệm vụ": {data.mobile.devices} điện thoại.</>}
           </div>
         </div>
 

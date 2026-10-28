@@ -184,6 +184,8 @@ export interface DashboardSummary {
 
 export interface NotificationSettings {
   push: { enabled: boolean; publicKey: string; devices: number };
+  /** Ứng dụng di động (FCM/APNs): máy chủ đã cấu hình chưa, số điện thoại đang nhận. */
+  mobile?: { enabled: boolean; devices: number };
   email: { enabled: boolean; address: string | null };
 }
 

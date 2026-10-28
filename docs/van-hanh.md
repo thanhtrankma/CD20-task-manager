@@ -26,7 +26,8 @@ xử lý sự cố, việc định kỳ.
             Kho sao lưu ngoài VPS             Uptime Kuma (máy giám sát tại trường)
 ```
 
-Kết nối ra ngoài của API: dịch vụ thông báo đẩy (Google, Mozilla, Apple, Microsoft) qua 443, máy chủ thư nội bộ (SMTP).
+Kết nối ra ngoài của API: dịch vụ thông báo đẩy (Google, Mozilla, Apple, Microsoft; Firebase, APNs cho ứng dụng di động)
+qua 443, máy chủ thư nội bộ (SMTP).
 Lời nhắc gửi ra ngoài không chứa nội dung nhiệm vụ.
 
 ## 2. Triển khai lần đầu
@@ -94,6 +95,18 @@ Sau đó:
 2. **Xóa `ADMIN_PASSWORD` khỏi `.env`**.
 3. Tạo đơn vị, nhập tài khoản từ Excel (xem `docs/huong-dan-su-dung.md`, mục 5).
 4. Chạy kiểm tra: `SITE_URL=https://<tên-miền> ./scripts/check-health.sh`.
+
+**Thông báo đẩy về ứng dụng di động** (không bắt buộc; thiếu thì ứng dụng vẫn chạy, chỉ không có thông báo đẩy):
+1. Tạo dự án Firebase (tài khoản Google của đơn vị), thêm ứng dụng Android, iOS với mã `vn.cdn20.giaoviec`.
+2. Firebase Console → Project settings → Service accounts → tạo khóa → lưu thành `infra/secrets/fcm-account.json`
+   (`chmod 600`); `.env`: `FCM_SERVICE_ACCOUNT_FILE=/run/secrets/fcm-account.json`.
+3. iPhone: tạo khóa APNs (.p8) ở Apple Developer → Keys, **tải khóa này lên Firebase** (Cloud Messaging → Apple app
+   configuration) để Firebase chuyển thông báo tới iPhone. Muốn gửi thẳng tới Apple không qua Firebase: đặt khóa vào
+   `infra/secrets/apns-key.p8` và điền `APNS_KEY_FILE`, `APNS_KEY_ID`, `APNS_TEAM_ID`.
+4. Build ứng dụng với cấu hình Firebase (xem `apps/mobile/README.md`), `docker compose up -d` để nạp cấu hình.
+
+Thông báo gửi qua Google, Apple chỉ có câu nhắc chung và đường dẫn, không có nội dung nhiệm vụ. Thiết bị gắn với phiên
+đăng nhập: đăng xuất, hết phiên, bị khóa tài khoản thì điện thoại thôi nhận.
 
 Máy chủ tại trường, chỉ dùng mạng nội bộ (không có tên miền): `SITE_ADDRESS=https://<IP>`, `CADDY_TLS=tls internal`,
 `APP_ORIGIN=https://<IP>`; cài chứng chỉ gốc của Caddy (`docker compose cp web:/data/caddy/pki/authorities/local/root.crt .`)
@@ -212,6 +225,7 @@ Mọi lần dùng lệnh khẩn cấp phải ghi biên bản (ai, khi nào, lý 
 | `APP_SECRET` (mã hóa khóa 2FA) | `infra/.env` (chmod 600) | Két, phong bì niêm phong |
 | `POSTGRES_PASSWORD` | `infra/.env` | Như trên |
 | `VAPID_PRIVATE_KEY` | `infra/.env` | Như trên (mất thì người dùng phải bật lại thông báo) |
+| Khóa Firebase, khóa APNs (.p8) | `infra/secrets/` (chmod 600) | Tạo lại được trên Firebase, Apple Developer (thu hồi khóa cũ) |
 | Mật khẩu kho sao lưu restic | `/root/.restic-password` | Như trên |
 | Khóa WireGuard, khóa SSH quản trị | VPS, máy quản trị | Không sao chép; mất thì tạo lại |
 

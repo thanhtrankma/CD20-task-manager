@@ -2,8 +2,8 @@
 //   CSDL kiểm thử riêng (xóa trắng, chạy migration, nạp dữ liệu mẫu) → khởi động API từ bản build → tạo tài khoản phụ.
 // Không bao giờ đụng CSDL phát triển: tên CSDL kiểm thử bắt buộc kết thúc bằng "_test".
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
-import { randomBytes } from 'node:crypto';
-import { existsSync, mkdtempSync, openSync, readFileSync, rmSync } from 'node:fs';
+import { generateKeyPairSync, randomBytes } from 'node:crypto';
+import { existsSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -95,7 +95,22 @@ export async function globalSetup() {
     process.env, tmp);
   const vapid = require('web-push').generateVAPIDKeys() as { publicKey: string; privateKey: string };
 
-  const [port, smtpPort] = [await freePort(), await freePort()];
+  const [port, smtpPort, fcmPort, apnsPort] = [await freePort(), await freePort(), await freePort(), await freePort()];
+
+  // Thông báo đẩy ứng dụng di động: khóa tài khoản dịch vụ Firebase (RSA), khóa APNs (EC P-256) giả lập.
+  // Dịch vụ FCM, APNs giả chạy trong notifications.mobile.test.mts, kiểm tra chữ ký bằng khóa công khai.
+  const fcmKey = generateKeyPairSync('rsa', { modulusLength: 2048 });
+  const apnsKey = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+  writeFileSync(join(tmp, 'fcm-account.json'), JSON.stringify({
+    type: 'service_account',
+    project_id: 'giaoviec-test',
+    client_email: 'push@giaoviec-test.iam.gserviceaccount.com',
+    private_key: fcmKey.privateKey.export({ type: 'pkcs8', format: 'pem' }),
+    token_uri: `https://localhost:${fcmPort}/token`,
+  }));
+  writeFileSync(join(tmp, 'fcm-public.pem'), fcmKey.publicKey.export({ type: 'spki', format: 'pem' }));
+  writeFileSync(join(tmp, 'apns-key.p8'), apnsKey.privateKey.export({ type: 'pkcs8', format: 'pem' }));
+  writeFileSync(join(tmp, 'apns-public.pem'), apnsKey.publicKey.export({ type: 'spki', format: 'pem' }));
   const adminPassword = password();
   const demoPassword = password();
   const env: NodeJS.ProcessEnv = {
@@ -117,6 +132,12 @@ export async function globalSetup() {
     SMTP_SECURE: 'false',
     SMTP_FROM: 'Giao viec <no-reply@giaoviec.test>',
     PUSH_ALLOWED_HOSTS: 'localhost,fcm.googleapis.com',
+    FCM_SERVICE_ACCOUNT_FILE: join(tmp, 'fcm-account.json'),
+    FCM_BASE_URL: `https://localhost:${fcmPort}`,
+    APNS_KEY_FILE: join(tmp, 'apns-key.p8'),
+    APNS_KEY_ID: 'KEYID12345',
+    APNS_TEAM_ID: 'TEAMID1234',
+    APNS_HOST: `localhost:${apnsPort}`,
     NODE_EXTRA_CA_CERTS: join(tmp, 'push-cert.pem'),
     ADMIN_USERNAME: 'admin',
     ADMIN_PASSWORD: adminPassword,
@@ -176,6 +197,8 @@ export async function globalSetup() {
     TEST_OTP_SECRETS: JSON.stringify(otpSecrets),
     TEST_TMP: tmp,
     TEST_SMTP_PORT: String(smtpPort),
+    TEST_FCM_PORT: String(fcmPort),
+    TEST_APNS_PORT: String(apnsPort),
     TEST_ENV_JSON: JSON.stringify(env),
   });
 }

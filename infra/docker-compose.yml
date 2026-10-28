@@ -52,10 +52,18 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
+      # Thông báo đẩy về ứng dụng di động: đặt tệp khóa trong infra/secrets/ (chmod 600, không đưa vào Git)
+      FCM_SERVICE_ACCOUNT_FILE: ${FCM_SERVICE_ACCOUNT_FILE:-}
+      APNS_KEY_FILE: ${APNS_KEY_FILE:-}
+      APNS_KEY_ID: ${APNS_KEY_ID:-}
+      APNS_TEAM_ID: ${APNS_TEAM_ID:-}
+      APNS_BUNDLE_ID: ${APNS_BUNDLE_ID:-vn.cdn20.giaoviec}
+      APNS_ENV: ${APNS_ENV:-production}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     volumes:
       - uploads:/data/uploads
+      - ./secrets:/run/secrets:ro
     # Container chỉ đọc, không có quyền hệ thống: lỗ hổng ứng dụng (nếu có) khó ghi tệp, leo thang quyền.
     read_only: true
     tmpfs: ["/tmp"]

@@ -52,6 +52,16 @@ enum ExtensionStatus {
   REJECTED
 }
 
+enum DevicePlatform {
+  ANDROID
+  IOS
+}
+
+enum PushProvider {
+  FCM // Firebase Cloud Messaging (Android; iOS qua Firebase)
+  APNS // Gửi thẳng tới Apple
+}
+
 // Dòng hoạt động của nhiệm vụ (hiển thị trong chi tiết). Không lưu nội dung bình luận, báo cáo.
 enum TaskActivityType {
   CREATED
@@ -121,6 +131,7 @@ model User {
   comments           Comment[]
   notifications      Notification[]
   pushSubscriptions  PushSubscription[]
+  devices            Device[]
   auditLogs          AuditLog[]
 
   @@index([unitId])
@@ -136,11 +147,32 @@ model Session {
   userAgent String?  @map("user_agent")
   createdAt DateTime @default(now()) @map("created_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  devices Device[]
 
   @@index([userId])
   @@index([expiresAt])
   @@map("sessions")
+}
+
+// Điện thoại cài ứng dụng, nhận thông báo đẩy. Gắn với phiên đăng nhập: đăng xuất, phiên hết hạn hoặc bị thu hồi
+// thì thiết bị tự bị xóa (không còn nhận nhắc việc của tài khoản đó).
+model Device {
+  id         Int            @id @default(autoincrement())
+  userId     Int            @map("user_id")
+  sessionId  String         @map("session_id")
+  platform   DevicePlatform
+  provider   PushProvider
+  token      String         @unique @db.VarChar(512)
+  appVersion String?        @map("app_version") @db.VarChar(32)
+  createdAt  DateTime       @default(now()) @map("created_at")
+  lastSeenAt DateTime       @default(now()) @map("last_seen_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("devices")
 }
 
 model Task {

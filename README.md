@@ -139,6 +139,7 @@ Nguyên tắc an toàn:
 | POST | `/api/tasks/:id/extensions` · `/api/tasks/extensions/:id/decide` | Xin gia hạn; người giao chấp thuận hoặc không |
 | GET | `/api/dashboard/report?from=&to=` | Thống kê 4 nhóm (đúng hạn, quá hạn...) theo đơn vị, cá nhân, tháng (lãnh đạo, chỉ huy) |
 | POST | `/api/submissions/approve-batch` | Duyệt "Đạt" nhiều báo cáo một lần (báo cáo không có quyền thì báo lỗi riêng) |
+| POST | `/api/devices` · `/api/devices/unregister` | Ứng dụng di động đăng ký/hủy nhận thông báo đẩy (FCM, APNs); thiết bị gắn với phiên đăng nhập |
 | POST | `/api/users/import` | Quản trị nhập tài khoản từ Excel (giao diện đọc tệp; có lỗi thì không tạo tài khoản nào; trả mật khẩu tạm một lần) |
 | POST | `/api/users/:id/unlock` · `/reset-2fa` | Mở khóa đăng nhập; đặt lại xác thực hai lớp khi mất điện thoại (thu hồi mọi phiên) |
 | GET/PATCH | `/api/tasks/:id` | Chi tiết, sửa/hủy |

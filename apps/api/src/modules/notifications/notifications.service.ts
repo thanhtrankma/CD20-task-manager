@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MailService } from './mail.service';
+import { MobilePushService } from './mobile-push.service';
 import { PushService } from './push.service';
 
 /** Nội dung gửi ra ngoài hệ thống (thông báo đẩy, thư): chỉ lời nhắc chung, không có tên, nội dung nhiệm vụ. */
@@ -17,6 +18,7 @@ export class NotificationsService {
     private readonly prisma: PrismaService,
     private readonly push: PushService,
     private readonly mail: MailService,
+    private readonly mobile: MobilePushService,
   ) {}
 
   /**
@@ -34,7 +36,11 @@ export class NotificationsService {
 
   /** Gửi ra ngoài không chặn request; lỗi gửi chỉ ghi log. */
   deliver(userIds: number[], message: DeliveryMessage) {
-    void Promise.allSettled([this.push.sendToUsers(userIds, message), this.mail.sendToUsers(userIds, message)]).then(
+    void Promise.allSettled([
+      this.push.sendToUsers(userIds, message),
+      this.mobile.sendToUsers(userIds, message),
+      this.mail.sendToUsers(userIds, message),
+    ]).then(
       (results) =>
         results
           .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
@@ -69,12 +75,14 @@ export class NotificationsService {
   }
 
   async settings(userId: number) {
-    const [user, devices] = await Promise.all([
+    const [user, devices, mobileDevices] = await Promise.all([
       this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { email: true } }),
       this.prisma.pushSubscription.count({ where: { userId } }),
+      this.prisma.device.count({ where: { userId } }),
     ]);
     return {
       push: { enabled: this.push.enabled, publicKey: this.push.publicKey, devices },
+      mobile: { enabled: this.mobile.enabled, devices: mobileDevices },
       email: { enabled: this.mail.enabled, address: user.email },
     };
   }
