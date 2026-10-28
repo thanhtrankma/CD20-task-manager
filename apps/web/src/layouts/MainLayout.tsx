@@ -1,5 +1,6 @@
 import {
   Building2,
+  ChartColumn,
   ClipboardList,
   LayoutDashboard,
   LogOut,
@@ -141,6 +142,7 @@ export function MainLayout() {
                 items={[
                   { to: '/', label: 'Tổng quan', icon: LayoutDashboard },
                   { to: '/tasks', label: 'Việc của tôi', icon: ClipboardList, badge: counts.data?.todo },
+                  ...(canAssign ? [{ to: '/reports', label: 'Thống kê', icon: ChartColumn }] : []),
                 ]}
               />
             )}

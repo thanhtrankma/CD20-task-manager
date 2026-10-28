@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Grid, Input, Pagination, Popconfirm, Progress, Select, Skeleton, Space, Table, Tabs } from 'antd';
 import dayjs from 'dayjs';
-import { Plus, Search } from 'lucide-react';
+import { Download, Plus, Search } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api, toQuery } from '../../api/client';
@@ -9,7 +9,8 @@ import type { Assignee, Paged, TaskCounts, TaskRow, TaskStatus, TodoItem, TodoRe
 import { useAuth } from '../../auth/AuthContext';
 import { ItemList, ItemRow } from '../../components/ItemList';
 import { DueTag, PriorityPill, StatusPill } from '../../components/Pill';
-import { DATE_FORMAT, STATUS, TODO_REASON } from '../../constants';
+import { DATE_FORMAT, DATETIME_FORMAT, PRIORITY, STATUS, TODO_REASON } from '../../constants';
+import { downloadXlsx, headerRow } from '../../utils/excel';
 import { PageHeader, Panel, useShell } from '../../layouts/shell';
 
 export const assigneeLabel = (a: Pick<Assignee, 'unit' | 'user'>) => a.unit?.name ?? a.user?.fullName ?? '';
@@ -143,6 +144,60 @@ function TodoList() {
   );
 }
 
+const VIEW_LABEL: Record<Exclude<View, 'todo'>, string> = {
+  assigned: 'Được giao',
+  created: 'Đã giao',
+  review: 'Chờ duyệt',
+  following: 'Theo dõi',
+  all: 'Toàn bộ',
+};
+
+/** Đánh giá so với hạn, cùng cách tính với trang Thống kê. */
+function resultOf(t: TaskRow & { completedAt?: string | null }) {
+  if (t.status === 'CANCELLED') return 'Đã hủy';
+  if (t.status === 'DONE') return t.completedAt && t.completedAt > t.dueDate ? 'Hoàn thành quá hạn' : 'Hoàn thành đúng hạn';
+  return t.overdue ? 'Đang thực hiện quá hạn' : 'Đang thực hiện trong hạn';
+}
+
+/** Xuất toàn bộ danh sách theo mục, bộ lọc đang chọn (không chỉ trang đang xem) ra Excel, phục vụ giao ban. */
+async function exportTasks(view: Exclude<View, 'todo'>, status?: TaskStatus, q?: string) {
+  type Row = TaskRow & { source?: string | null; completedAt?: string | null };
+  const items: Row[] = [];
+  for (let page = 1; page <= 20; page++) {
+    const r = await api.get<Paged<Row>>(
+      `/tasks${toQuery({ view: view === 'all' ? undefined : view, status, q, page, pageSize: 100 })}`,
+    );
+    items.push(...r.items);
+    if (items.length >= r.total) break;
+  }
+  const by = (t: Row, role: 'LEAD' | 'SUPPORT') =>
+    t.assignees.filter((a) => a.role === role).map(assigneeLabel).join(', ');
+  await downloadXlsx(`nhiem-vu-${dayjs().format('YYYYMMDD-HHmm')}.xlsx`, [
+    {
+      name: VIEW_LABEL[view],
+      data: [
+        headerRow(['STT', 'Nhiệm vụ', 'Căn cứ', 'Người giao', 'Chủ trì', 'Phối hợp', 'Hạn', 'Mức ưu tiên', 'Trạng thái', 'Tiến độ (%)', 'Hoàn thành lúc', 'Đánh giá']),
+        ...items.map((t, i) => [
+          i + 1,
+          t.title,
+          t.source ?? '',
+          t.createdBy.fullName,
+          by(t, 'LEAD'),
+          by(t, 'SUPPORT'),
+          dayjs(t.dueDate).format(DATETIME_FORMAT),
+          PRIORITY[t.priority].label,
+          STATUS[t.status].label,
+          t.progress,
+          t.completedAt ? dayjs(t.completedAt).format(DATETIME_FORMAT) : '',
+          resultOf(t),
+        ]),
+      ],
+      widths: [6, 44, 28, 22, 26, 24, 17, 12, 16, 10, 17, 22],
+    },
+  ]);
+  return items.length;
+}
+
 /** Các mục còn lại: danh sách có lọc trạng thái, tìm kiếm, phân trang. */
 function TaskList({
   view,
@@ -153,8 +208,10 @@ function TaskList({
   status?: TaskStatus;
   setParams: ReturnType<typeof useSearchParams>[1];
 }) {
+  const { message } = App.useApp();
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
+  const [exporting, setExporting] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ['tasks', 'list', { view, status, q, page }],
     queryFn: () =>
@@ -191,6 +248,24 @@ function TaskList({
           style={{ width: 280, maxWidth: '100%' }}
         />
         {compact && data && <span className="muted">{data.total} công việc</span>}
+        <Button
+          icon={<Download size={15} />}
+          loading={exporting}
+          disabled={!data?.total}
+          style={{ marginLeft: 'auto' }}
+          onClick={async () => {
+            setExporting(true);
+            try {
+              message.success(`Đã xuất ${await exportTasks(view, status, q || undefined)} nhiệm vụ`);
+            } catch (e) {
+              message.error((e as Error).message);
+            } finally {
+              setExporting(false);
+            }
+          }}
+        >
+          <span className="hide-xs">Xuất Excel</span>
+        </Button>
       </div>
 
       {compact ? (

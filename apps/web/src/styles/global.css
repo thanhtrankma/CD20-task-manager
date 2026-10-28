@@ -293,3 +293,30 @@ a.stat:hover { border-color: #bfdbfe; box-shadow: 0 20px 40px -24px rgba(37, 99,
 .unit-node .unit-actions { margin-left: auto; opacity: 0.35; transition: opacity 0.15s; }
 .unit-node:hover .unit-actions, .unit-node:focus-within .unit-actions { opacity: 1; }
 @media (hover: none) { .unit-node .unit-actions { opacity: 1; } }
+
+/* ---------- Thống kê ---------- */
+.filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 16px; }
+.report-tile {
+  display: flex; flex-direction: column; gap: 4px; padding: 16px 18px;
+  background: #fff; border: 1px solid var(--c-border); border-radius: 8px; box-shadow: var(--shadow-xs);
+}
+.report-tile span { font-size: 12px; font-weight: 600; color: var(--c-muted); display: flex; align-items: center; gap: 6px; }
+.report-tile b { font-size: 26px; font-weight: 800; color: var(--c-text); line-height: 1.1; }
+.report-tile small { font-size: 11px; color: var(--c-muted); }
+.report-tile .dot, .chart-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex-shrink: 0; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--c-muted); }
+.chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
+/* Thanh xếp chồng: khe 2px giữa các đoạn, đầu thanh bo 4px */
+.stack-bar { display: flex; gap: 2px; height: 14px; min-width: 4px; }
+.stack-bar span { min-width: 3px; height: 100%; }
+.stack-bar span:first-child { border-radius: 4px 0 0 4px; }
+.stack-bar span:last-child { border-radius: 0 4px 4px 0; }
+.stack-bar span:only-child { border-radius: 4px; }
+.month-bars { display: grid; gap: 10px; }
+.month-row { display: grid; grid-template-columns: 70px 1fr 120px; align-items: center; gap: 12px; font-size: 13px; }
+.month-label { color: var(--c-muted); font-weight: 600; }
+.month-value { color: var(--c-text); text-align: right; white-space: nowrap; }
+@media (max-width: 640px) { .month-row { grid-template-columns: 60px 1fr; } .month-value { grid-column: 2; text-align: left; } }
+.scroll-x { max-width: 100%; overflow-x: auto; }
+.panel-legend { padding: 12px 20px 4px; }
+.month-bars { margin-top: 14px; }

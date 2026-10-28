@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Alert, App, Button, Modal, Space, Table, Typography, Upload } from 'antd';
 import { Download, FileSpreadsheet } from 'lucide-react';
-import type { SheetData } from 'write-excel-file/browser';
+import { downloadXlsx, headerRow, type SheetData } from '../../utils/excel';
 import { useState } from 'react';
 import { ApiError, api } from '../../api/client';
 
@@ -28,22 +28,15 @@ const ROLE_BY_LABEL: Record<string, Role> = {
   'chỉ huy đơn vị': 'UNIT_HEAD',
   'lãnh đạo': 'LEADER',
 };
-// Thư viện Excel chỉ tải khi cần (quản trị nhập tài khoản), không làm nặng trang của người dùng khác.
-const writeXlsx = async (data: SheetData, widths: number[], fileName: string) => {
-  const { default: writeXlsxFile } = await import('write-excel-file/browser');
-  await writeXlsxFile(data, { columns: widths.map((width) => ({ width })) }).toFile(fileName);
-};
-
 const text = (v: unknown) => (v === null || v === undefined ? '' : String(v).trim());
 
 async function downloadTemplate() {
-  const bold = (value: string) => ({ value, fontWeight: 'bold' as const });
   const data: SheetData = [
-    HEADERS.map(bold),
+    headerRow(HEADERS),
     ['nguyenvana', 'Nguyễn Văn A', 'KCNTT', 'Cán bộ', 'Thượng úy', 'Giảng viên', ''],
     ['tranvanb', 'Trần Văn B', 'PDT', 'Chỉ huy đơn vị', 'Thiếu tá', 'Trưởng phòng', ''],
   ];
-  await writeXlsx(data, [20, 26, 14, 18, 14, 18, 28], 'mau-nhap-tai-khoan.xlsx');
+  await downloadXlsx('mau-nhap-tai-khoan.xlsx', [{ name: 'Tài khoản', data, widths: [20, 26, 14, 18, 14, 18, 28] }]);
 }
 
 /** Đọc tệp Excel theo mẫu, trả các dòng hợp lệ về mặt định dạng và lỗi đọc (dòng tính cả tiêu đề). */
@@ -111,14 +104,10 @@ export function ImportUsersModal({ open, onClose }: { open: boolean; onClose: ()
   const downloadPasswords = async () => {
     if (!created) return;
     const data: SheetData = [
-      [
-        { value: 'Tên đăng nhập', fontWeight: 'bold' },
-        { value: 'Họ tên', fontWeight: 'bold' },
-        { value: 'Mật khẩu tạm (đổi ở lần đăng nhập đầu)', fontWeight: 'bold' },
-      ],
+      headerRow(['Tên đăng nhập', 'Họ tên', 'Mật khẩu tạm (đổi ở lần đăng nhập đầu)']),
       ...created.map((c) => [c.username, c.fullName, c.temporaryPassword]),
     ];
-    await writeXlsx(data, [20, 28, 38], 'mat-khau-tam.xlsx');
+    await downloadXlsx('mat-khau-tam.xlsx', [{ name: 'Mật khẩu tạm', data, widths: [20, 28, 38] }]);
   };
 
   return (

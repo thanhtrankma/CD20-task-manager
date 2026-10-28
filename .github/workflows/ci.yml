@@ -1,4 +1,5 @@
-# Kiểm thử tự động mỗi lần đẩy mã: build, kiểm tra kiểu, bộ kiểm thử API (CSDL PostgreSQL tạm), build web.
+# Kiểm thử tự động mỗi lần đẩy mã: build, kiểm tra kiểu, bộ kiểm thử API (CSDL PostgreSQL tạm), build web,
+# phân tích mã và kiểm thử ứng dụng Flutter.
 name: Kiểm thử
 
 on:
@@ -53,3 +54,19 @@ jobs:
           cache-dependency-path: apps/web/package-lock.json
       - run: npm ci
       - run: npm run build
+
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.7
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test

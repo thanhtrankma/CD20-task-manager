@@ -186,3 +186,21 @@ export interface NotificationSettings {
   push: { enabled: boolean; publicKey: string; devices: number };
   email: { enabled: boolean; address: string | null };
 }
+
+/** Thống kê 4 nhóm theo kết quả so với hạn. */
+export interface ReportCounts {
+  total: number;
+  doneOnTime: number;
+  doneLate: number;
+  inProgressOnTime: number;
+  inProgressLate: number;
+  onTimeRate: number | null;
+}
+
+export interface Report {
+  period: { from: string; to: string };
+  totals: ReportCounts;
+  byUnit: (ReportCounts & { unitId: number; name: string })[];
+  byPerson: (ReportCounts & { userId: number; fullName: string; unitName: string; active: number })[];
+  byMonth: (ReportCounts & { month: string })[];
+}

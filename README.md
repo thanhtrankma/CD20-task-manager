@@ -1,6 +1,7 @@
 # Phần mềm quản lý giao việc, nộp báo cáo, theo dõi tiến độ
 
 Phần mềm nội bộ của Nhà trường. Lộ trình phát triển: xem [roadmap.md](roadmap.md).
+Hướng dẫn sử dụng theo vai trò: [docs/huong-dan-su-dung.md](docs/huong-dan-su-dung.md).
 
 > **Không soạn thảo, lưu trữ, truyền đưa thông tin thuộc bí mật nhà nước trên hệ thống này.**
 
@@ -135,6 +136,7 @@ Nguyên tắc an toàn:
 | POST | `/api/tasks/:id/follow` · `/unfollow` · `/followers` | Tự theo dõi, bỏ theo dõi; người giao thêm người theo dõi |
 | POST | `/api/tasks/:id/nudge` | Người giao đôn đốc (tối đa 3 lần/ngày/nhiệm vụ) |
 | POST | `/api/tasks/:id/extensions` · `/api/tasks/extensions/:id/decide` | Xin gia hạn; người giao chấp thuận hoặc không |
+| GET | `/api/dashboard/report?from=&to=` | Thống kê 4 nhóm (đúng hạn, quá hạn...) theo đơn vị, cá nhân, tháng (lãnh đạo, chỉ huy) |
 | POST | `/api/submissions/approve-batch` | Duyệt "Đạt" nhiều báo cáo một lần (báo cáo không có quyền thì báo lỗi riêng) |
 | POST | `/api/users/import` | Quản trị nhập tài khoản từ Excel (giao diện đọc tệp; có lỗi thì không tạo tài khoản nào; trả mật khẩu tạm một lần) |
 | POST | `/api/users/:id/unlock` · `/reset-2fa` | Mở khóa đăng nhập; đặt lại xác thực hai lớp khi mất điện thoại (thu hồi mọi phiên) |

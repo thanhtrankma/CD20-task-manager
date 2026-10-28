@@ -109,10 +109,10 @@ dụng khác: xem [docs/tham-khao-ung-dung-giao-viec.md](docs/tham-khao-ung-dung
 - [x] **B15. Tra cứu nhật ký**: lọc theo người, thao tác, thời gian
 
 ### Tuần 6: Thống kê, hướng dẫn
-- [ ] **B16. Thống kê 4 nhóm** theo đơn vị, cá nhân, theo tháng: hoàn thành đúng hạn, hoàn thành quá hạn,
+- [x] **B16. Thống kê 4 nhóm** theo đơn vị, cá nhân, theo tháng: hoàn thành đúng hạn, hoàn thành quá hạn,
       đang thực hiện trong hạn, đang thực hiện quá hạn; số nhiệm vụ đang thực hiện của mỗi người
-- [ ] **B17. Xuất Excel** danh sách nhiệm vụ và thống kê (phục vụ giao ban, báo cáo)
-- [ ] **B18. Hướng dẫn sử dụng** theo vai trò (`docs/huong-dan-su-dung.md`), có hình minh họa
+- [x] **B17. Xuất Excel** danh sách nhiệm vụ và thống kê (phục vụ giao ban, báo cáo)
+- [x] **B18. Hướng dẫn sử dụng** theo vai trò (`docs/huong-dan-su-dung.md`), có hình minh họa
 
 ## Giai đoạn C: Triển khai thử trên máy chủ thật (Tuần 7 – 8)
 
