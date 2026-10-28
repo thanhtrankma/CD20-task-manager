@@ -4,6 +4,8 @@
 <dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Chụp ảnh kết quả công việc để đính kèm báo cáo nhiệm vụ.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Mở khóa ứng dụng Giao nhiệm vụ bằng Face ID.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Chọn ảnh có sẵn để đính kèm báo cáo nhiệm vụ.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
@@ -51,6 +53,10 @@
 			</array>
 		</dict>
 	</dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

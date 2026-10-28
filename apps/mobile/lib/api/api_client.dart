@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
+import '../config.dart';
 import 'session_store.dart';
 
 const sessionCookie = 'tm_session';
@@ -64,7 +65,7 @@ class ApiClient {
     required String baseUrl,
     required this.store,
     http.Client? client,
-    this.userAgent = 'GiaoNhiemVu-Mobile/1.0',
+    this.userAgent = 'GiaoNhiemVu-Mobile/$appVersion',
     this.timeout = const Duration(seconds: 20),
     this.transferTimeout = const Duration(minutes: 3),
   })  : _base = Uri.parse('$baseUrl/api'),

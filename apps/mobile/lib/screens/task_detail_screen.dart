@@ -8,6 +8,8 @@ import '../util/activity.dart';
 import '../util/due.dart';
 import '../util/format.dart';
 import '../widgets/common.dart';
+import 'pickers.dart';
+import 'task_manage.dart';
 import 'task_sheets.dart';
 import 'tasks_screen.dart' show openTask;
 
@@ -178,6 +180,50 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     if (ok) _comment.clear();
   }
 
+  // ---------- Quản lý (người giao) ----------
+
+  Future<void> _edit(TaskDetail t) async {
+    final saved = await showEditTask(context, t);
+    if (saved == true && mounted) {
+      showMessage(context, 'Đã lưu thay đổi');
+      await _load();
+    }
+  }
+
+  Future<void> _cancelTask() async {
+    final ok = await askNote(
+      context,
+      title: 'Hủy nhiệm vụ?',
+      message: 'Người thực hiện, người theo dõi sẽ nhận thông báo. Nhiệm vụ đã hủy không sửa được nữa.',
+      confirm: 'Hủy nhiệm vụ',
+      destructive: true,
+      withNote: false,
+    );
+    if (ok == null) return;
+    await _run(() => _app.api.patch(_base, {'status': 'CANCELLED'}), 'Đã hủy nhiệm vụ');
+  }
+
+  Future<void> _addFollowers(TaskDetail t) async {
+    final me = _app.auth.me;
+    final picked = await pickUsers(
+      context,
+      title: 'Thêm người theo dõi',
+      exclude: {...t.followers.map((f) => f.id), if (me != null) me.id},
+    );
+    if (picked == null || picked.isEmpty || !mounted) return;
+    await _run(
+      () => _app.api.post('$_base/followers', {'userIds': picked.map((u) => u.id).toList()}),
+      'Đã thêm ${picked.length} người theo dõi',
+    );
+  }
+
+  Future<void> _subTask(TaskDetail t) async {
+    final id = await showQuickAssign(context, parentId: t.id, parentDue: t.row.dueDate, parentTitle: t.row.title);
+    if (id == null || !mounted) return;
+    showMessage(context, 'Đã giao việc con');
+    await _load();
+  }
+
   Future<void> _openFile(FileRef f) async {
     showMessage(context, 'Đang tải ${f.originalName}...');
     try {
@@ -196,7 +242,31 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   Widget build(BuildContext context) {
     final t = _task;
     return Scaffold(
-      appBar: AppBar(title: const Text('Chi tiết nhiệm vụ')),
+      appBar: AppBar(
+        title: const Text('Chi tiết nhiệm vụ'),
+        actions: [
+          if (t != null && t.permissions.manage && !t.status.isClosed)
+            PopupMenuButton<String>(
+              tooltip: 'Quản lý nhiệm vụ',
+              enabled: !_busy,
+              onSelected: (v) => switch (v) {
+                'edit' => _edit(t),
+                'followers' => _addFollowers(t),
+                'cancel' => _cancelTask(),
+                _ => null,
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit_outlined), title: Text('Sửa nhiệm vụ'))),
+                PopupMenuItem(
+                    value: 'followers',
+                    child: ListTile(leading: Icon(Icons.person_add_alt), title: Text('Thêm người theo dõi'))),
+                PopupMenuItem(
+                    value: 'cancel',
+                    child: ListTile(leading: Icon(Icons.cancel_outlined), title: Text('Hủy nhiệm vụ'))),
+              ],
+            ),
+        ],
+      ),
       body: t == null
           ? (_error == null
               ? const Center(child: CircularProgressIndicator())
@@ -284,6 +354,12 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
             label: const Text('Xin gia hạn'),
           ),
       ],
+      if (p.work && open && (_app.auth.me?.role.canAssign ?? false))
+        OutlinedButton.icon(
+          onPressed: _busy ? null : () => _subTask(t),
+          icon: const Icon(Icons.account_tree_outlined),
+          label: const Text('Chia việc con'),
+        ),
       if (p.manage && open)
         OutlinedButton.icon(
           onPressed: _busy ? null : _nudge,

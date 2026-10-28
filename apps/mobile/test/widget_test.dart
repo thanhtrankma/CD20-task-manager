@@ -7,9 +7,15 @@ import 'package:giaoviec/api/session_store.dart';
 import 'package:giaoviec/app.dart';
 import 'package:giaoviec/auth/auth_controller.dart';
 import 'package:giaoviec/services/app_services.dart';
+import 'package:giaoviec/push/messaging.dart';
+import 'package:giaoviec/push/push_service.dart';
+import 'package:giaoviec/security/app_lock.dart';
 import 'package:giaoviec/services/attachments.dart';
+import 'package:giaoviec/services/prefs.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import 'fakes.dart';
 
 http.Response json(Object body, [int status = 200, Map<String, String> headers = const {}]) =>
     http.Response(jsonEncode(body), status, headers: {'content-type': 'application/json; charset=utf-8', ...headers});
@@ -79,17 +85,56 @@ class FakeServer {
       case '/api/tasks/2/acknowledge':
         acknowledged = true;
         return http.Response('', 204);
+      case '/api/users':
+        return json([
+          {'id': 5, 'fullName': 'Nguyễn Văn Cán', 'role': 'STAFF', 'isActive': true, 'unit': {'id': 1, 'name': 'Khoa CNTT'}},
+          {'id': 6, 'fullName': 'Trần Thị Bộ', 'role': 'STAFF', 'isActive': true, 'unit': {'id': 1, 'name': 'Khoa CNTT'}},
+          {'id': 7, 'fullName': 'Quản Trị', 'role': 'ADMIN', 'isActive': true, 'unit': {'id': 1, 'name': 'Khoa CNTT'}},
+        ]);
+      case '/api/units':
+        return json([
+          {'id': 1, 'name': 'Khoa CNTT', 'parentId': null, 'isActive': true},
+          {'id': 2, 'name': 'Phòng Đào tạo', 'parentId': null, 'isActive': true},
+        ]);
+      case '/api/tasks':
+        if (req.method == 'POST') return json({'id': 42}, 201);
+      case '/api/devices':
+      case '/api/devices/unregister':
+      case '/api/auth/logout':
+        return http.Response('', 204);
+      case '/api/notifications/settings':
+        return json({
+          'push': {'enabled': false, 'devices': 0},
+          'mobile': {'enabled': true, 'devices': 1},
+        });
     }
     return json({'message': 'Không tìm thấy'}, 404);
   }
 }
 
-Future<(AppServices, FakeServer)> startApp(WidgetTester tester, {String role = 'STAFF', bool otp = false, String? token}) async {
+Future<(AppServices, FakeServer)> startApp(
+  WidgetTester tester, {
+  String role = 'STAFF',
+  bool otp = false,
+  String? token,
+  FakeDeviceAuth? deviceAuth,
+  FakeMessaging? messaging,
+}) async {
   final server = FakeServer(role: role, otp: otp);
   final api = ApiClient(baseUrl: 'http://api.test', store: MemorySessionStore(token), client: MockClient(server.handle));
-  final auth = AuthController(api);
-  final services = AppServices(api: api, auth: auth, files: AttachmentService(api));
+  final push = PushService(
+    api: api,
+    messaging: messaging ?? FakeMessaging(),
+    config: messaging == null ? emptyPushConfig : fullPushConfig,
+    isAndroid: true,
+  );
+  final auth = AuthController(api, beforeLogout: push.unregister);
+  final lock = AppLock(deviceAuth: deviceAuth ?? FakeDeviceAuth(), prefs: MemoryPrefsStore(), isSignedIn: () => api.hasSession);
+  final services = AppServices(api: api, auth: auth, files: AttachmentService(api), lock: lock, push: push);
+  await api.restore();
+  await lock.init();
   await tester.pumpWidget(GiaoViecApp(services: services));
+  await push.start();
   await auth.bootstrap();
   await tester.pumpAndSettle();
   return (services, server);
@@ -166,6 +211,150 @@ void main() {
   testWidgets('tài khoản quản trị bị chặn', (tester) async {
     await startApp(tester, role: 'ADMIN', token: 'abc');
     expect(find.text('Ứng dụng dành cho người giao, nhận nhiệm vụ'), findsOneWidget);
+    await stopApp(tester);
+  });
+
+  testWidgets('khởi động có phiên: màn hình khóa, xác thực thất bại vẫn khóa, thử lại thì mở', (tester) async {
+    final deviceAuth = FakeDeviceAuth(result: DeviceAuthResult.failed);
+    final (services, _) = await startApp(tester, token: 'abc', deviceAuth: deviceAuth);
+
+    expect(find.text('Mở khóa'), findsOneWidget);
+    expect(find.text('Chưa mở khóa được. Đồng chí thử lại.'), findsOneWidget);
+    expect(deviceAuth.prompts, 1); // Tự hiện hộp xác thực một lần.
+    expect(services.lock.locked, isTrue);
+
+    deviceAuth.result = DeviceAuthResult.success;
+    await tester.tap(find.text('Mở khóa'));
+    await tester.pumpAndSettle();
+    expect(find.text('Mở khóa'), findsNothing);
+    expect(find.text('Báo cáo tổng kết học kỳ'), findsOneWidget);
+    await stopApp(tester);
+  });
+
+  testWidgets('máy chưa đặt khóa màn hình: không khóa, báo một lần', (tester) async {
+    final (services, _) = await startApp(tester, token: 'abc', deviceAuth: FakeDeviceAuth(supported: false));
+    expect(find.text('Mở khóa'), findsNothing);
+    expect(find.text('Đồng chí nên đặt khóa màn hình'), findsOneWidget);
+    await tester.tap(find.text('Đã hiểu'));
+    await tester.pumpAndSettle();
+    expect(services.lock.noticePending, isFalse);
+    await stopApp(tester);
+  });
+
+  testWidgets('đăng xuất từ màn hình khóa: hủy đăng ký thiết bị trước khi đăng xuất', (tester) async {
+    final messaging = FakeMessaging();
+    final (_, server) = await startApp(
+      tester,
+      token: 'abc',
+      deviceAuth: FakeDeviceAuth(result: DeviceAuthResult.failed),
+      messaging: messaging,
+    );
+    expect(server.requests.where((r) => r.url.path == '/api/devices'), hasLength(1));
+
+    await tester.tap(find.text('Đăng xuất'));
+    await tester.pump();
+    await tester.tap(find.text('Bấm lần nữa để đăng xuất'));
+    await tester.pumpAndSettle();
+
+    final paths = server.requests.map((r) => r.url.path).toList();
+    final unregister = paths.indexOf('/api/devices/unregister');
+    expect(unregister, greaterThanOrEqualTo(0));
+    expect(paths.indexOf('/api/auth/logout'), greaterThan(unregister));
+    expect(find.text('Mở khóa'), findsNothing);
+    expect(find.text('Đăng nhập'), findsOneWidget);
+    await stopApp(tester);
+  });
+
+  testWidgets('cán bộ không có nút Giao nhanh', (tester) async {
+    await startApp(tester, token: 'abc');
+    expect(find.text('Giao nhanh'), findsNothing);
+    await stopApp(tester);
+  });
+
+  testWidgets('chỉ huy đơn vị giao nhanh: kiểm tra dữ liệu và gửi POST /tasks', (tester) async {
+    final (_, server) = await startApp(tester, role: 'UNIT_HEAD', token: 'abc');
+    await tester.tap(find.text('Giao nhanh'));
+    await tester.pumpAndSettle();
+
+    // Chưa nhập gì: báo lỗi, không gửi.
+    await tester.ensureVisible(find.text('Giao nhiệm vụ'));
+    await tester.tap(find.text('Giao nhiệm vụ'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tên nhiệm vụ cần từ 3 đến 255 ký tự'), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('qa-title')), 'Rà soát hồ sơ học viên');
+    await tester.tap(find.text('Giao nhiệm vụ'));
+    await tester.pumpAndSettle();
+    expect(find.text('Đồng chí chọn ít nhất một người hoặc đơn vị nhận việc'), findsOneWidget);
+
+    await tester.tap(find.text('Chọn người'));
+    await tester.pumpAndSettle();
+    expect(find.text('Quản Trị'), findsNothing); // Không giao cho tài khoản quản trị.
+    await tester.tap(find.text('Nguyễn Văn Cán'));
+    await tester.pump();
+    await tester.tap(find.text('Xong (1)'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Giao nhiệm vụ'));
+    await tester.tap(find.text('Giao nhiệm vụ'));
+    await tester.pumpAndSettle();
+
+    final post = server.requests.singleWhere((r) => r.method == 'POST' && r.url.path == '/api/tasks');
+    final body = jsonDecode(post.body) as Map;
+    expect(body['title'], 'Rà soát hồ sơ học viên');
+    expect(body['assignees'], [
+      {'userId': 5, 'role': 'LEAD'},
+    ]);
+    expect(body['priority'], 'NORMAL');
+    expect(body.containsKey('source'), isFalse);
+    final due = DateTime.parse(body['dueDate'] as String).toLocal();
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    expect((due.year, due.month, due.day, due.hour, due.minute), (tomorrow.year, tomorrow.month, tomorrow.day, 23, 59));
+    expect(find.text('Đã giao nhiệm vụ'), findsOneWidget);
+    await stopApp(tester);
+  });
+
+  testWidgets('thông báo đẩy: khi đang mở hiện thanh báo; bấm thông báo mở nhiệm vụ', (tester) async {
+    final messaging = FakeMessaging();
+    final (services, server) = await startApp(tester, token: 'abc', messaging: messaging);
+    expect(services.push.state, PushState.registered);
+    final reg = jsonDecode(server.requests.singleWhere((r) => r.url.path == '/api/devices').body) as Map;
+    expect(reg['platform'], 'ANDROID');
+    expect(reg['provider'], 'FCM');
+
+    messaging.foreground.add(const PushMessage(
+        title: 'Giao nhiệm vụ', body: 'Đồng chí được giao nhiệm vụ mới', link: '/tasks/2'));
+    await tester.pumpAndSettle();
+    expect(find.text('Đồng chí được giao nhiệm vụ mới'), findsOneWidget);
+
+    messaging.opened.add(const PushMessage(link: '/tasks/2'));
+    await tester.pumpAndSettle();
+    expect(find.text('Chi tiết nhiệm vụ'), findsOneWidget);
+    expect(find.text('Kết luận giao ban tuần 20'), findsOneWidget);
+    await stopApp(tester);
+  });
+
+  testWidgets('bấm thông báo khi đang khóa: mở nhiệm vụ sau khi mở khóa', (tester) async {
+    final messaging = FakeMessaging()..initial = const PushMessage(link: '/tasks/2');
+    final deviceAuth = FakeDeviceAuth(result: DeviceAuthResult.failed);
+    await startApp(tester, token: 'abc', messaging: messaging, deviceAuth: deviceAuth);
+    expect(find.text('Mở khóa'), findsOneWidget);
+    expect(find.text('Chi tiết nhiệm vụ'), findsNothing);
+
+    deviceAuth.result = DeviceAuthResult.success;
+    await tester.tap(find.text('Mở khóa'));
+    await tester.pumpAndSettle();
+    expect(find.text('Chi tiết nhiệm vụ'), findsOneWidget);
+    await stopApp(tester);
+  });
+
+  testWidgets('tài khoản: khóa ứng dụng, thông báo chưa cấu hình, thông tin máy chủ', (tester) async {
+    await startApp(tester, token: 'abc');
+    await tester.tap(find.text('Tài khoản'));
+    await tester.pumpAndSettle();
+    expect(find.text('Khóa ứng dụng'), findsOneWidget);
+    expect(find.textContaining('chưa được cấu hình'), findsOneWidget);
+    expect(find.textContaining('Máy chủ đã bật gửi thông báo tới điện thoại · 1 thiết bị'), findsOneWidget);
     await stopApp(tester);
   });
 }

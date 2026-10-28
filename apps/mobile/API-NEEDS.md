@@ -1,7 +1,7 @@
-# Những thay đổi API ứng dụng di động cần (chưa làm)
+# Những thay đổi API ứng dụng di động cần
 
-Mốc 1 của ứng dụng chỉ dùng API hiện có. Các mục dưới đây cần sửa `apps/api` nên **chưa làm**, ghi lại để
-đưa vào lộ trình (Giai đoạn E: E3, E4, E5, E6 – E8).
+Mốc 1 của ứng dụng chỉ dùng API hiện có. Mục 1 (thiết bị, thông báo đẩy) đã làm ở máy chủ cùng mốc 2 của ứng dụng;
+mục 2 (phiên Bearer), 1.4 (thông báo im lặng) chưa làm. Ghi lại để đưa vào lộ trình (Giai đoạn E: E3, E4, E5, E6 – E8).
 
 ## 1. Thông báo đẩy (FCM cho Android, APNs cho iOS)
 
@@ -35,12 +35,12 @@ model Device {
 
 | Phương thức | Đường dẫn | Nội dung | Ghi chú |
 |---|---|---|---|
-| POST | `/api/devices` | `{ platform: 'ANDROID' \| 'IOS', token: string, appVersion?: string }` → 204 | Gọi sau khi đăng nhập và mỗi lần mở ứng dụng (mã có thể đổi). Cùng `token` đã có thì gán lại cho người dùng, phiên hiện tại và cập nhật `lastSeenAt` (máy dùng chung, đổi người đăng nhập). |
+| POST | `/api/devices` | `{ platform: 'ANDROID' \| 'IOS', provider: 'FCM' \| 'APNS', token: string, appVersion?: string }` → 204 (ứng dụng gửi `provider: 'FCM'` cho cả hai nền tảng) | Gọi sau khi đăng nhập và mỗi lần mở ứng dụng (mã có thể đổi). Cùng `token` đã có thì gán lại cho người dùng, phiên hiện tại và cập nhật `lastSeenAt` (máy dùng chung, đổi người đăng nhập). |
 | POST | `/api/devices/unregister` | `{ token: string }` → 204 | Gọi trước `POST /api/auth/logout`. Chỉ xóa thiết bị của chính người dùng. |
 | (nội bộ) | — | — | `POST /api/auth/logout` và thu hồi phiên (quản trị khóa tài khoản, đổi mật khẩu) xóa luôn thiết bị gắn với phiên đó. |
 
 - Phân quyền: mọi vai trò trừ ADMIN; giới hạn tần suất như các điểm cuối ghi khác.
-- `GET /api/notifications/settings` thêm `mobile: { devices: number }` để trang Bảo mật tài khoản trên web hiển thị.
+- `GET /api/notifications/settings` thêm `mobile: { enabled: boolean, devices: number }` để trang Bảo mật tài khoản trên web hiển thị.
 - Xóa thiết bị khi FCM trả `UNREGISTERED` / APNs trả 410 `Unregistered`; không quá 10 thiết bị mỗi người
   (thêm thiết bị thứ 11 thì xóa thiết bị cũ nhất theo `lastSeenAt`).
 
@@ -105,16 +105,24 @@ nếu làm thì cần:
 - Đã có `GET /api/notifications/unread-count` (ứng dụng đang dùng cho huy hiệu trong ứng dụng).
 - Cần thêm: gửi `badge` trong thông báo đẩy iOS (mục 1.3); Android tự hiện chấm theo thông báo chưa xóa.
 
-## 4. Việc của mốc 2 (không cần sửa API, ghi để làm tiếp)
+## 4. Việc của mốc 2 (trạng thái)
 
-- **Khóa ứng dụng** bằng vân tay / khuôn mặt / mã PIN khi mở lại sau một khoảng thời gian (gói `local_auth`).
-- **Chặn chụp màn hình** trên Android (`WindowManager.LayoutParams.FLAG_SECURE` trong `MainActivity`);
-  **làm mờ nội dung** trong màn hình chuyển ứng dụng trên iOS (lớp che khi `sceneWillResignActive`).
-- **Khóa tên miền / ghim chứng chỉ**: chỉ kết nối tới tên miền của Nhà trường; ghim khóa công khai của chứng chỉ
+- [x] **Khóa ứng dụng** bằng vân tay / khuôn mặt / mã khóa màn hình khi mở ứng dụng và khi quay lại sau hơn 5 phút
+  (gói `local_auth`, không chỉ sinh trắc). Mặc định bật; tắt ở Tài khoản; máy chưa đặt khóa màn hình thì báo một lần.
+- [x] **Chặn chụp màn hình** trên Android (`FLAG_SECURE` trong `MainActivity`); **che nội dung** trong trình chuyển
+  ứng dụng trên iOS (lớp logo khi `UIScene.willDeactivateNotification`).
+- [x] Màn hình khởi động có logo trường (Android, Android 12+, iOS).
+- [x] **Thông báo đẩy phía ứng dụng** (FCM cho cả Android và iOS, cấu hình qua `--dart-define`): xin quyền, đăng ký /
+  hủy đăng ký mã thiết bị (`POST /api/devices`, `POST /api/devices/unregister`), thanh báo khi đang mở, bấm thông
+  báo mở nhiệm vụ. Phía máy chủ (mục 1) đã làm: `provider: FCM|APNS`, `mobile: {enabled, devices}` trong
+  `GET /notifications/settings`. Chưa thử gửi thật (chưa có dự án Firebase).
+- [x] **Giao nhanh** (tên + người / đơn vị chủ trì + hạn + ưu tiên, thêm nội dung, căn cứ, người theo dõi) cho lãnh
+  đạo, chỉ huy đơn vị: `POST /api/tasks`, danh sách người `GET /api/users` (theo phạm vi), đơn vị `GET /api/units`.
+- [x] Sửa / hủy nhiệm vụ, thêm người theo dõi, chia việc con trên điện thoại (`PATCH /tasks/:id` chỉ gửi trường đổi,
+  `POST /tasks/:id/followers`, `POST /tasks` có `parentId`).
+- [x] Số chưa đọc trên biểu tượng ứng dụng **iOS** (máy chủ gửi `aps.badge`; ứng dụng đặt lại theo số chưa đọc).
+- [ ] **Số chưa đọc trên biểu tượng ứng dụng Android** (để sau; Android tự hiện chấm theo thông báo chưa xóa).
+- [ ] **Khóa tên miền / ghim chứng chỉ**: chỉ kết nối tới tên miền của Nhà trường; ghim khóa công khai của chứng chỉ
   (Android: `<pin-set>` trong `network_security_config.xml` bản release; Dart: `SecurityContext` riêng hoặc kiểm tra
-  `badCertificateCallback` không được dùng, so khớp SPKI). Cần quy trình thay chứng chỉ có khóa dự phòng.
-- **Số chưa đọc trên biểu tượng ứng dụng** (sau khi có thông báo đẩy).
-- **Giao nhanh** (tên + người nhận + hạn) cho lãnh đạo, chỉ huy đơn vị: dùng `POST /api/tasks` hiện có,
-  cần thêm danh sách người có thể giao (đã có `GET /api/users` theo phạm vi).
-- Màn hình khởi động có logo trường (Android 12+ đang dùng biểu tượng ứng dụng; iOS đang để trống).
-- Sửa / hủy nhiệm vụ, thêm người theo dõi, chia việc con trên điện thoại (bản web đã có).
+  `badCertificateCallback` không được dùng, so khớp SPKI). Cần quy trình thay chứng chỉ có khóa dự phòng. Để sau.
+- [ ] Tệp đính kèm khi giao nhanh trên điện thoại (bản web có; `POST /files?taskId=` sau khi tạo). Để sau.

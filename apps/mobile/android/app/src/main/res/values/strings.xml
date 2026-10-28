@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Kênh thông báo đẩy (máy chủ gửi channel_id "nhac_viec"). -->
+    <string name="notification_channel_id" translatable="false">nhac_viec</string>
+    <string name="notification_channel_name">Nhắc việc</string>
+    <string name="notification_channel_description">Giao nhiệm vụ, đôn đốc, nhắc hạn, kết quả duyệt báo cáo</string>
+</resources>

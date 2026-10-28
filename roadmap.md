@@ -150,20 +150,21 @@ Mục tiêu: cán bộ cài ứng dụng của Nhà trường, nhận nhắc vi�
       thông báo, tài khoản; biểu tượng theo logo trường. Dùng chung API với bản web
 - [x] **E2. Đăng nhập trên ứng dụng**: mã phiên lưu trong **kho bảo mật của điện thoại** (Keychain trên iOS, Keystore trên
       Android); dùng chung bảng phiên, chung cơ chế thu hồi khi đăng xuất. Bản phát hành chỉ kết nối HTTPS
-  (đợt 1 xong 28/10/2026: 48 kiểm thử, chạy được trên iOS Simulator với API thật; chưa thử trên máy thật, Android
-  emulator. Việc API cần làm thêm cho thông báo đẩy: `apps/mobile/API-NEEDS.md`)
+  (đợt 1 xong 28/10/2026; đợt 2 xong cùng ngày: khóa ứng dụng, chặn chụp màn hình, thông báo đẩy, giao nhanh, sửa/hủy,
+  thêm người theo dõi, chia việc con; 88 kiểm thử. Chưa thử trên máy thật, Android emulator, chưa có dự án Firebase)
 
 ### Tuần 12 – 13: Thông báo đẩy
-- [ ] **E3. Bảng thiết bị** (Android/iOS, mã thiết bị); đăng ký khi đăng nhập, xóa khi đăng xuất
-- [ ] **E4. Gửi thông báo**: Android qua Firebase Cloud Messaging, iOS qua Apple Push Notification service;
-      **chỉ gửi câu chung** như hiện nay, bấm vào mở đúng nhiệm vụ
-- [ ] **E5. Số chưa đọc** trên biểu tượng ứng dụng
-- [ ] **E5b. Thao tác một chạm** trên thẻ nhiệm vụ (Đã nhận, cập nhật %, Duyệt); **chụp ảnh đính kèm** khi nộp báo cáo; "Giao nhanh"
+- [x] **E3. Bảng thiết bị** (Android/iOS, mã thiết bị); đăng ký khi đăng nhập, xóa khi đăng xuất
+- [x] **E4. Gửi thông báo**: máy chủ gửi qua Firebase Cloud Messaging (Android, iOS) hoặc thẳng tới APNs (iOS);
+      **chỉ gửi câu chung** như hiện nay, bấm vào mở đúng nhiệm vụ. Đã kiểm thử với FCM, APNs giả lập (kiểm tra chữ ký JWT).
+      🧾 Còn: dự án Firebase, khóa APNs (cần tài khoản Apple Developer)
+- [~] **E5. Số chưa đọc** trên biểu tượng ứng dụng (iOS: máy chủ đã gửi số chưa đọc kèm thông báo)
+- [x] **E5b. Thao tác một chạm** trên thẻ nhiệm vụ (Đã nhận, cập nhật %, Duyệt); **chụp ảnh đính kèm** khi nộp báo cáo; "Giao nhanh"
 
 ### Tuần 14: Bảo vệ ứng dụng
-- [ ] **E6. Khóa ứng dụng** bằng vân tay, khuôn mặt hoặc mã PIN khi mở lại sau một khoảng thời gian
-- [ ] **E7. Chặn chụp màn hình** trên Android; ẩn nội dung khi chuyển ứng dụng; không lưu dữ liệu nhiệm vụ lâu dài trên máy
-- [ ] **E8. Chỉ kết nối tới máy chủ của Nhà trường** (khóa tên miền), từ chối kết nối không an toàn
+- [x] **E6. Khóa ứng dụng** bằng vân tay, khuôn mặt hoặc mã PIN khi mở lại sau một khoảng thời gian
+- [x] **E7. Chặn chụp màn hình** trên Android; ẩn nội dung khi chuyển ứng dụng; không lưu dữ liệu nhiệm vụ lâu dài trên máy
+- [~] **E8. Chỉ kết nối tới máy chủ của Nhà trường** (khóa tên miền), từ chối kết nối không an toàn (bản phát hành chỉ HTTPS tới địa chỉ cấu hình sẵn; chưa ghim chứng chỉ)
 
 ### Tuần 15 – 16: Phát hành
 - [ ] **E9. Android**: phát hành trên Google Play dạng riêng tư (chỉ người được mời) hoặc tệp APK ký số để cài trực tiếp

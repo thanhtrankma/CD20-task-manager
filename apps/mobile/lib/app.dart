@@ -1,15 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import 'auth/auth_controller.dart';
 import 'constants.dart';
+import 'push/messaging.dart';
 import 'screens/account_screens.dart';
 import 'screens/login_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/task_detail_screen.dart';
 import 'screens/tasks_screen.dart';
+import 'security/lock_screen.dart';
 import 'services/app_services.dart';
+import 'services/badge.dart';
 
 ThemeData buildTheme() {
   final scheme = ColorScheme.fromSeed(seedColor: primaryColor, primary: primaryColor);
@@ -167,11 +172,113 @@ class GiaoViecApp extends StatefulWidget {
 
 class _GiaoViecAppState extends State<GiaoViecApp> {
   late final GoRouter _router = buildRouter(widget.services.auth);
+  final _messenger = GlobalKey<ScaffoldMessengerState>();
+  StreamSubscription<PushMessage>? _foregroundSub;
+  AuthStatus? _lastStatus;
+
+  AppServices get _s => widget.services;
+
+  @override
+  void initState() {
+    super.initState();
+    _s.auth.addListener(_onAuth);
+    _s.lock.addListener(_tryOpenPending);
+    _s.push.pendingOpen.addListener(_tryOpenPending);
+    _router.routerDelegate.addListener(_tryOpenPending);
+    _s.unread.addListener(_onUnread);
+    _foregroundSub = _s.push.foregroundMessages.listen(_onForegroundMessage);
+    _onAuth();
+  }
 
   @override
   void dispose() {
+    _s.auth.removeListener(_onAuth);
+    _s.lock.removeListener(_tryOpenPending);
+    _s.push.pendingOpen.removeListener(_tryOpenPending);
+    _router.routerDelegate.removeListener(_tryOpenPending);
+    _s.unread.removeListener(_onUnread);
+    _foregroundSub?.cancel();
     _router.dispose();
     super.dispose();
+  }
+
+  void _onAuth() {
+    final status = _s.auth.status;
+    if (status == _lastStatus) return;
+    _lastStatus = status;
+    if (status == AuthStatus.ready) {
+      // Sau khi đăng nhập và mỗi lần mở ứng dụng khi đã đăng nhập: đăng ký nhận thông báo đẩy.
+      unawaited(_s.push.register());
+      if (_s.lock.noticePending) WidgetsBinding.instance.addPostFrameCallback((_) => _showScreenLockNotice());
+    } else if (status == AuthStatus.loggedOut) {
+      _s.lock.reset();
+      _s.push.signedOut();
+      AppBadge.set(0);
+    }
+    _tryOpenPending();
+  }
+
+  void _onUnread() => AppBadge.set(_s.unread.count);
+
+  /// Máy chưa đặt khóa màn hình: khuyên một lần, không chặn.
+  Future<void> _showScreenLockNotice() async {
+    final ctx = _router.routerDelegate.navigatorKey.currentContext;
+    if (ctx == null || !_s.lock.noticePending) return;
+    await _s.lock.markNoticeShown();
+    if (!ctx.mounted) return;
+    await showDialog<void>(
+      context: ctx,
+      builder: (c) => AlertDialog(
+        icon: const Icon(Icons.lock_outline),
+        title: const Text('Đồng chí nên đặt khóa màn hình'),
+        content: const Text(
+          'Điện thoại chưa đặt mã khóa màn hình (mã PIN, hình vẽ, mật khẩu) nên ứng dụng không thể tự khóa. '
+          'Để bảo vệ thông tin công tác khi mất máy, đồng chí đặt khóa màn hình trong Cài đặt của điện thoại; '
+          'ứng dụng sẽ tự bật khóa sau đó.',
+        ),
+        actions: [FilledButton(onPressed: () => Navigator.pop(c), child: const Text('Đã hiểu'))],
+      ),
+    );
+  }
+
+  /// Thông báo tới khi đang mở ứng dụng: hiện thanh báo câu chung, làm mới số chưa đọc và danh sách.
+  void _onForegroundMessage(PushMessage m) {
+    if (_s.auth.status != AuthStatus.ready) return;
+    _s.unread.refresh();
+    _s.events.changed();
+    final text = (m.body?.isNotEmpty ?? false) ? m.body! : (m.title ?? 'Đồng chí có thông báo mới');
+    final messenger = _messenger.currentState;
+    messenger?.hideCurrentSnackBar();
+    messenger?.showSnackBar(SnackBar(
+      content: Text(text),
+      duration: const Duration(seconds: 6),
+      action: m.taskId == null
+          ? null
+          : SnackBarAction(label: 'Xem', onPressed: () => _s.push.pendingOpen.value = m),
+    ));
+  }
+
+  /// Mở nhiệm vụ từ thông báo đã bấm: chờ đã đăng nhập, đã mở khóa và đã vào màn hình chính.
+  void _tryOpenPending() {
+    final m = _s.push.pendingOpen.value;
+    if (m == null) return;
+    if (_s.auth.status == AuthStatus.loggedOut) return; // Giữ lại, mở sau khi đăng nhập.
+    if (_s.auth.status != AuthStatus.ready || _s.lock.locked) return;
+    final path = _router.routerDelegate.currentConfiguration.uri.path;
+    if (const {'/splash', '/login', '/blocked'}.contains(path) || path.isEmpty) return;
+    _s.push.pendingOpen.value = null;
+    final id = m.notificationId;
+    if (id != null) _s.api.post('/notifications/$id/read').then((_) => _s.unread.refresh(), onError: (_) {});
+    final taskId = m.taskId;
+    if (taskId != null) {
+      WidgetsBinding.instance
+        ..addPostFrameCallback((_) {
+          if (mounted) _router.push('/task/$taskId');
+        })
+        ..scheduleFrame();
+    } else {
+      _router.go('/notifications');
+    }
   }
 
   @override
@@ -185,7 +292,9 @@ class _GiaoViecAppState extends State<GiaoViecApp> {
         locale: const Locale('vi'),
         supportedLocales: const [Locale('vi'), Locale('en')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        scaffoldMessengerKey: _messenger,
         routerConfig: _router,
+        builder: (context, child) => LockGate(lock: _s.lock, auth: _s.auth, child: child ?? const SizedBox()),
       ),
     );
   }

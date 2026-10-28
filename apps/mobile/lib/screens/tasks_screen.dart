@@ -8,6 +8,7 @@ import '../services/app_services.dart';
 import '../util/todo_groups.dart';
 import '../widgets/common.dart';
 import '../widgets/task_card.dart';
+import 'task_manage.dart';
 
 /// Các mục của "Việc của tôi". "todo" là màn hình mặc định.
 enum TaskView {
@@ -73,6 +74,17 @@ class _TasksScreenState extends State<TasksScreen> {
     }
   }
 
+  Future<void> _quickAssign() async {
+    final id = await showQuickAssign(context);
+    if (id == null || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(SnackBar(
+      content: const Text('Đã giao nhiệm vụ'),
+      action: id > 0 ? SnackBarAction(label: 'Xem', onPressed: () => openTask(context, id)) : null,
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final role = _app.auth.me?.role ?? Role.staff;
@@ -88,6 +100,13 @@ class _TasksScreenState extends State<TasksScreen> {
             tabs: [for (final v in views) Tab(child: _TabLabel(v.label, v.count(_counts)))],
           ),
         ),
+        floatingActionButton: role.canAssign
+            ? FloatingActionButton.extended(
+                onPressed: _quickAssign,
+                icon: const Icon(Icons.add_task),
+                label: const Text('Giao nhanh'),
+              )
+            : null,
         body: TabBarView(
           children: [
             for (final v in views)
@@ -204,7 +223,7 @@ class _TodoListState extends State<TodoList> with AutomaticKeepAliveClientMixin 
       body = const CenterMessage(icon: Icons.task_alt, text: 'Không có việc nào cần xử lý. Tốt lắm!');
     } else {
       body = ListView(
-        padding: const EdgeInsets.only(bottom: 24),
+        padding: const EdgeInsets.only(bottom: 88),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           for (final g in groups) ...[
@@ -343,7 +362,7 @@ class _PagedTaskListState extends State<PagedTaskList> with AutomaticKeepAliveCl
           return false;
         },
         child: ListView.builder(
-          padding: const EdgeInsets.only(top: 6, bottom: 24),
+          padding: const EdgeInsets.only(top: 6, bottom: 88),
           physics: const AlwaysScrollableScrollPhysics(),
           itemCount: _items.length + (_hasMore ? 1 : 0),
           itemBuilder: (context, i) {

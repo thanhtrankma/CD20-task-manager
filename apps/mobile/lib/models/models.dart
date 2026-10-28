@@ -89,6 +89,7 @@ class Me {
     required this.fullName,
     required this.role,
     required this.unitName,
+    this.unitId,
     required this.mustChangePassword,
     required this.twoFactorRequired,
     this.email,
@@ -99,6 +100,7 @@ class Me {
   final String fullName;
   final Role role;
   final String unitName;
+  final int? unitId;
   final String? email;
   final bool mustChangePassword;
   final bool twoFactorRequired;
@@ -109,6 +111,7 @@ class Me {
         fullName: _str(j['fullName']),
         role: Role.parse(j['role']),
         unitName: _str(_map(j['unit'])['name']),
+        unitId: _intOrNull(_map(j['unit'])['id']) ?? _intOrNull(j['unitId']),
         email: _strOrNull(j['email']),
         mustChangePassword: _bool(j['mustChangePassword']),
         twoFactorRequired: _bool(j['twoFactorRequired']),
@@ -446,4 +449,61 @@ class AppNotification {
         readAt: _date(j['readAt']),
         createdAt: _date(j['createdAt']),
       );
+}
+
+/// Người có thể giao việc / thêm theo dõi (GET /users, máy chủ đã giới hạn theo phạm vi).
+class UserOption {
+  const UserOption({required this.id, required this.fullName, this.unitName, this.position, this.rank, this.role});
+  final int id;
+  final String fullName;
+  final String? unitName;
+  final String? position;
+  final String? rank;
+  final Role? role;
+
+  String get subtitle => [rank, position, unitName].whereType<String>().where((s) => s.isNotEmpty).join(' · ');
+
+  /// Bỏ tài khoản quản trị và tài khoản đã khóa (như bản web).
+  static List<UserOption> listFrom(Object? data) => _list(data)
+      .where((j) => j['isActive'] != false && j['role'] != 'ADMIN')
+      .map(UserOption.fromJson)
+      .toList();
+
+  factory UserOption.fromJson(Json j) => UserOption(
+        id: _int(j['id']),
+        fullName: _str(j['fullName']),
+        unitName: _strOrNull(_map(j['unit'])['name']),
+        position: _strOrNull(j['position']),
+        rank: _strOrNull(j['rank']),
+        role: j['role'] == null ? null : Role.parse(j['role']),
+      );
+
+  @override
+  bool operator ==(Object other) => other is UserOption && other.id == id;
+  @override
+  int get hashCode => id.hashCode;
+}
+
+/// Đơn vị (GET /units).
+class UnitOption {
+  const UnitOption({required this.id, required this.name, this.parentId, this.isActive = true});
+  final int id;
+  final String name;
+  final int? parentId;
+  final bool isActive;
+
+  static List<UnitOption> listFrom(Object? data) =>
+      _list(data).map(UnitOption.fromJson).where((u) => u.isActive).toList();
+
+  factory UnitOption.fromJson(Json j) => UnitOption(
+        id: _int(j['id']),
+        name: _str(j['name']),
+        parentId: _intOrNull(j['parentId']),
+        isActive: j['isActive'] != false,
+      );
+
+  @override
+  bool operator ==(Object other) => other is UnitOption && other.id == id;
+  @override
+  int get hashCode => id.hashCode;
 }

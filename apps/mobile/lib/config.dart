@@ -42,3 +42,7 @@ String resolveApiBase({
   }
   return base;
 }
+
+/// Phiên bản ứng dụng gửi cho máy chủ khi đăng ký thiết bị; phải khớp `version` trong pubspec.yaml
+/// (kiểm thử `config_test.dart` so khớp).
+const String appVersion = '1.1.0';

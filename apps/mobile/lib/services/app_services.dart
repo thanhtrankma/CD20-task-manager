@@ -4,6 +4,8 @@ import 'package:flutter/widgets.dart';
 
 import '../api/api_client.dart';
 import '../auth/auth_controller.dart';
+import '../push/push_service.dart';
+import '../security/app_lock.dart';
 import 'attachments.dart';
 
 /// Báo cho các danh sách tải lại sau khi có thao tác làm thay đổi nhiệm vụ.
@@ -54,13 +56,15 @@ class UnreadCounter extends ChangeNotifier {
 }
 
 class AppServices {
-  AppServices({required this.api, required this.auth, required this.files})
+  AppServices({required this.api, required this.auth, required this.files, required this.lock, required this.push})
       : events = TaskEvents(),
         unread = UnreadCounter(api);
 
   final ApiClient api;
   final AuthController auth;
   final AttachmentService files;
+  final AppLock lock;
+  final PushService push;
   final TaskEvents events;
   final UnreadCounter unread;
 }

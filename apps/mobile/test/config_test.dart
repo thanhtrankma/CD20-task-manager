@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:giaoviec/config.dart';
 
@@ -22,5 +24,10 @@ void main() {
 
   test('địa chỉ sai', () {
     expect(() => resolveApiBase(define: 'gv.example.vn', isRelease: false), throwsA(isA<ConfigError>()));
+  });
+
+  test('appVersion khớp pubspec.yaml', () {
+    final m = RegExp(r'^version:\s*([0-9.]+)', multiLine: true).firstMatch(File('pubspec.yaml').readAsStringSync());
+    expect(appVersion, m!.group(1));
   });
 }

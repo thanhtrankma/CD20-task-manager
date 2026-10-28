@@ -21,7 +21,7 @@ enum AuthStatus {
 
 /// Trạng thái đăng nhập của ứng dụng; bộ định tuyến lắng nghe để chuyển màn hình.
 class AuthController extends ChangeNotifier {
-  AuthController(this.api, {this.onSignedOut}) {
+  AuthController(this.api, {this.onSignedOut, this.beforeLogout}) {
     api.onUnauthorized = _expired;
     api.onSetupRequired = _setupRequired;
   }
@@ -30,6 +30,9 @@ class AuthController extends ChangeNotifier {
 
   /// Dọn dữ liệu tạm (tệp đã tải về...) khi đăng xuất hoặc hết phiên.
   final Future<void> Function()? onSignedOut;
+
+  /// Chạy trước `POST /auth/logout` khi phiên còn hiệu lực (hủy đăng ký thông báo đẩy).
+  Future<void> Function()? beforeLogout;
 
   AuthStatus _status = AuthStatus.loading;
   AuthStatus get status => _status;
@@ -86,6 +89,9 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    try {
+      await beforeLogout?.call();
+    } catch (_) {}
     await api.logout();
     await _signedOut();
   }

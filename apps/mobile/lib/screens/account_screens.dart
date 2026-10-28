@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../auth/auth_controller.dart';
 import '../constants.dart';
+import '../push/push_service.dart';
+import '../security/app_lock.dart';
 import '../services/app_services.dart';
 
 Future<void> confirmLogout(BuildContext context) async {
@@ -55,6 +57,8 @@ class AccountScreen extends StatelessWidget {
           ),
           if (me?.email != null)
             ListTile(leading: const Icon(Icons.mail_outline), title: const Text('Thư nhắc việc'), subtitle: Text(me!.email!)),
+          const Divider(),
+          const _SecuritySection(),
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Text(
@@ -81,6 +85,131 @@ class AccountScreen extends StatelessWidget {
     final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
     if (parts.isEmpty) return '?';
     return parts.last.characters.first.toUpperCase();
+  }
+}
+
+/// Khóa ứng dụng và thông báo trên điện thoại này.
+class _SecuritySection extends StatefulWidget {
+  const _SecuritySection();
+
+  @override
+  State<_SecuritySection> createState() => _SecuritySectionState();
+}
+
+class _SecuritySectionState extends State<_SecuritySection> {
+  /// `mobile` trong GET /notifications/settings (null nếu máy chủ chưa có).
+  ({bool enabled, int devices})? _server;
+  bool _init = false;
+  late PushService _push;
+  PushState? _lastPush;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_init) return;
+    _init = true;
+    _push = AppScope.of(context).push;
+    _lastPush = _push.state;
+    _push.addListener(_onPush);
+    _loadServer();
+  }
+
+  /// Vừa đăng ký xong thiết bị: tải lại số thiết bị trên máy chủ.
+  void _onPush() {
+    if (_push.state == PushState.registered && _lastPush != PushState.registered) _loadServer();
+    _lastPush = _push.state;
+  }
+
+  @override
+  void dispose() {
+    _push.removeListener(_onPush);
+    super.dispose();
+  }
+
+  Future<void> _loadServer() async {
+    try {
+      final data = await AppScope.of(context).api.get('/notifications/settings');
+      final m = data is Map ? data['mobile'] : null;
+      if (m is Map && mounted) {
+        setState(() => _server = (
+              enabled: m['enabled'] == true,
+              devices: m['devices'] is num ? (m['devices'] as num).toInt() : 0,
+            ));
+      }
+    } catch (_) {
+      // Không hiện thông tin máy chủ nếu lỗi.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppScope.of(context);
+    return ListenableBuilder(
+      listenable: Listenable.merge([app.lock, app.push]),
+      builder: (context, _) => Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        _lockTile(context, app.lock),
+        _pushTile(context, app.push),
+      ]),
+    );
+  }
+
+  Widget _lockTile(BuildContext context, AppLock lock) {
+    return SwitchListTile(
+      secondary: const Icon(Icons.fingerprint),
+      title: const Text('Khóa ứng dụng'),
+      subtitle: Text(lock.supported
+          ? 'Mở ứng dụng hoặc quay lại sau ${AppLock.relockAfter.inMinutes} phút phải xác thực bằng vân tay, '
+              'khuôn mặt hoặc mã khóa màn hình'
+          : 'Điện thoại chưa đặt khóa màn hình. Đồng chí đặt mã khóa màn hình trong Cài đặt để dùng chức năng này.'),
+      isThreeLine: true,
+      value: lock.supported && lock.enabled,
+      onChanged: !lock.supported || lock.authenticating
+          ? null
+          : (v) async {
+              final ok = await lock.setEnabled(v);
+              if (!ok && context.mounted) {
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(const SnackBar(content: Text('Chưa xác thực, khóa ứng dụng vẫn bật')));
+              }
+            },
+    );
+  }
+
+  Widget _pushTile(BuildContext context, PushService push) {
+    final (icon, text) = switch (push.state) {
+      PushState.notConfigured => (
+          Icons.notifications_off_outlined,
+          'Thông báo trên điện thoại này chưa được cấu hình (bản cài đặt chưa có cấu hình Firebase). '
+              'Đồng chí xem thông báo trong mục Thông báo.',
+        ),
+      PushState.idle => (Icons.notifications_none, 'Đang đăng ký nhận thông báo...'),
+      PushState.permissionDenied => (
+          Icons.notifications_off_outlined,
+          'Đồng chí chưa cho phép ứng dụng hiện thông báo. Bật trong Cài đặt của điện thoại.',
+        ),
+      PushState.registered => (Icons.notifications_active_outlined, 'Điện thoại này đã đăng ký nhận thông báo nhắc việc.'),
+      PushState.serverUnsupported => (
+          Icons.notifications_off_outlined,
+          'Máy chủ chưa hỗ trợ thông báo tới điện thoại.',
+        ),
+      PushState.unavailable => (
+          Icons.notifications_off_outlined,
+          'Chưa đăng ký được thông báo trên điện thoại này. Đồng chí mở lại ứng dụng sau.',
+        ),
+    };
+    final server = _server;
+    final serverText = server == null
+        ? null
+        : server.enabled
+            ? 'Máy chủ đã bật gửi thông báo tới điện thoại · ${server.devices} thiết bị đã đăng ký'
+            : 'Máy chủ chưa bật gửi thông báo tới điện thoại · ${server.devices} thiết bị đã đăng ký';
+    return ListTile(
+      leading: Icon(icon),
+      title: const Text('Thông báo trên điện thoại'),
+      subtitle: Text([text, ?serverText].join('\n')),
+      isThreeLine: true,
+    );
   }
 }
 
