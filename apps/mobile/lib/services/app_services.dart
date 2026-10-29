@@ -4,9 +4,11 @@ import 'package:flutter/widgets.dart';
 
 import '../api/api_client.dart';
 import '../auth/auth_controller.dart';
+import '../chat/chat_service.dart';
 import '../push/push_service.dart';
 import '../security/app_lock.dart';
 import 'attachments.dart';
+import 'avatar_cache.dart';
 
 /// Báo cho các danh sách tải lại sau khi có thao tác làm thay đổi nhiệm vụ.
 class TaskEvents extends ChangeNotifier {
@@ -56,9 +58,17 @@ class UnreadCounter extends ChangeNotifier {
 }
 
 class AppServices {
-  AppServices({required this.api, required this.auth, required this.files, required this.lock, required this.push})
-      : events = TaskEvents(),
-        unread = UnreadCounter(api);
+  AppServices({
+    required this.api,
+    required this.auth,
+    required this.files,
+    required this.lock,
+    required this.push,
+    ChatService? chat,
+  })  : events = TaskEvents(),
+        unread = UnreadCounter(api),
+        avatars = AvatarCache(api),
+        chat = chat ?? ChatService(api: api, auth: auth, lock: lock);
 
   final ApiClient api;
   final AuthController auth;
@@ -67,6 +77,12 @@ class AppServices {
   final PushService push;
   final TaskEvents events;
   final UnreadCounter unread;
+
+  /// Ảnh đại diện đã tải (trong bộ nhớ).
+  final AvatarCache avatars;
+
+  /// Trò chuyện: số tin chưa đọc, luồng thời gian thực.
+  final ChatService chat;
 }
 
 class AppScope extends InheritedWidget {

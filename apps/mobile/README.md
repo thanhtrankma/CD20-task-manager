@@ -19,7 +19,7 @@ của API NestJS (`apps/api`, tiền tố `/api`), không có máy chủ riêng.
 | Chi tiết nhiệm vụ | Thông tin, chủ trì / phối hợp (đã nhận hay chưa), người theo dõi, căn cứ, việc cha / con, tệp đính kèm (tải về, mở bằng ứng dụng của máy), báo cáo, gia hạn, hoạt động, trao đổi | `GET /tasks/:id`, `GET /files/:id/download` |
 | Thao tác một chạm | Đã nhận nhiệm vụ; Cập nhật tiến độ (0–100%, ghi chú); Nộp báo cáo (**chụp ảnh**, ảnh có sẵn, chọn tệp PDF/Word/Excel/PowerPoint/ảnh); Xin gia hạn; Đôn đốc (báo số lần còn lại, 429 khi quá 3 lần/ngày); Duyệt / Trả lại báo cáo; Chấp thuận / Không chấp thuận gia hạn; Theo dõi / Bỏ theo dõi; gửi ý kiến | `POST /tasks/:id/acknowledge`, `/progress`, `/submissions`, `/extensions`, `/nudge`, `/follow`, `/unfollow`, `/comments`; `POST /files?taskId=`; `POST /submissions/:id/review`; `POST /tasks/extensions/:id/decide` |
 | Thông báo | Danh sách, chưa đọc tô đậm, bấm để mở nhiệm vụ (`/tasks/123`), "Đọc hết"; huy hiệu số chưa đọc trên thanh dưới (làm mới mỗi phút và khi quay lại ứng dụng) | `GET /notifications`, `POST /notifications/:id/read`, `POST /notifications/read-all`, `GET /notifications/unread-count` |
-| Tài khoản | Họ tên, tên đăng nhập, đơn vị, vai trò, đổi mật khẩu, xác thực hai lớp (mốc 3), đăng xuất | `POST /auth/logout` |
+| Tài khoản | Ảnh đại diện (mốc 4), họ tên, tên đăng nhập, đơn vị, vai trò, đổi mật khẩu, xác thực hai lớp (mốc 3), đăng xuất | `POST /auth/logout` |
 
 Lỗi từ API (`message` dạng chuỗi hoặc mảng) hiện trên thanh thông báo dưới màn hình.
 Các thao tác hiện theo `permissions` (`manage`, `work`, `acknowledge`) và trạng thái nhiệm vụ, giống bản web.
@@ -52,6 +52,34 @@ chặn chụp màn hình toàn ứng dụng (`FLAG_SECURE`).
 
 Bộ định tuyến chỉ nghe **thay đổi trạng thái** đăng nhập (`AuthController.statusListenable`), không nghe mọi lần tải lại
 `/auth/me`; nhờ vậy tải lại thông tin sau khi đổi mật khẩu / bật 2 lớp không dựng lại các màn hình đang mở.
+
+## Mốc 4: Trò chuyện, ảnh đại diện
+
+| Màn hình / chức năng | Nội dung | API |
+|---|---|---|
+| **Trò chuyện** (tab thứ hai trên thanh dưới, số tin chưa đọc; tài khoản quản trị không có) | Danh sách mới nhất trước: ảnh người kia (nhắn riêng), biểu tượng nhóm, ngôi sao (nhóm đơn vị); tên, tin cuối (nhóm: tên ngắn người gửi; tin của mình: "Tôi:"; tin thu hồi: "Tin nhắn đã được thu hồi"; tin hệ thống in nghiêng), giờ, số chưa đọc, biểu tượng đã tắt thông báo; kéo xuống để tải lại. Dòng nhắc cố định "Không trao đổi thông tin bí mật nhà nước" trên mọi màn hình trò chuyện | `GET /chat/conversations`, `GET /chat/unread` |
+| Tin nhắn mới (nút nổi) | **Nhắn riêng**: danh bạ có tìm kiếm; **Tạo nhóm**: tên + chọn nhiều người; **Nhóm theo đơn vị** (chỉ lãnh đạo, chỉ huy đơn vị; chỉ huy chỉ thấy đơn vị mình và trực thuộc): chọn đơn vị, "Gồm cả đơn vị trực thuộc"; máy chủ trả 409 thì báo "Đơn vị này đã có nhóm" | `GET /chat/directory?q=`, `POST /chat/direct`, `POST /chat/groups`, `GET /units`, `POST /chat/unit-groups` |
+| Cuộc trò chuyện | Tin mới nhất ở dưới, bong bóng (của mình bên phải nền đỏ chữ trắng; người khác bên trái, nhóm có ảnh + tên), dòng ngày ("Hôm nay", "Hôm qua", "Thứ Ba, 27/10/2026"), tin hệ thống ở giữa chữ xám; cuộn lên tải tin cũ (`before=<mã tin cũ nhất>`); ô soạn nhiều dòng, tối đa 4000 ký tự (gửi lỗi, kể cả 429, thì giữ nội dung); giữ ngón tay trên tin của mình chưa quá 24 giờ → **Thu hồi**; báo đã đọc khi tin mới nhất đang hiện; nhắn riêng hiện "Đã xem" dưới tin cuối của mình khi người kia đã đọc | `GET/POST /chat/conversations/:id/messages`, `POST .../read`, `DELETE /chat/messages/:id` |
+| Thông tin cuộc trò chuyện (bấm tên trên đầu) | Thành viên (ảnh, cấp bậc, chức vụ, đơn vị, trưởng nhóm); theo quyền máy chủ trả về: đổi tên, gồm đơn vị trực thuộc (`canManage`), thêm người (`canAddMembers`), bớt người (`canManage`, nhóm tự tạo), **Rời nhóm** (`canLeave`); **Tắt thông báo** | `GET/PATCH /chat/conversations/:id`, `POST .../members`, `DELETE .../members/:userId`, `POST .../mute` |
+| Thời gian thực | Khi ứng dụng ở tiền cảnh, đã mở khóa: mở `GET /chat/stream` (SSE qua cùng `http.Client`, cookie phiên); đọc `event:` / `data:`, bỏ dòng `:` (ping) và `retry:`. Mất kết nối: nối lại sau 1, 3, 8, 20 giây; im lặng quá 70 giây coi như mất. Lỗi liên tiếp 3 lần: danh sách tự hỏi lại mỗi 30 giây, cuộc trò chuyện đang mở mỗi 10 giây (biểu tượng ⚠ trên đầu danh sách) và vẫn thử nối lại. Đóng luồng khi xuống nền, khi khóa, khi đăng xuất; 401 xử lý như mọi yêu cầu (về đăng nhập). Nối lại thì các màn hình tải lại để không lỡ tin | `GET /chat/stream` |
+| Thông báo đẩy trò chuyện | Câu chung "Đồng chí có tin nhắn mới", `data.link = /chat/<id>`: bấm thì mở đúng cuộc trò chuyện (cùng cơ chế `/tasks/<id>`, chờ mở khóa / đăng nhập); đang mở đúng cuộc đó thì không hiện thanh báo. Mục Thông báo có đường dẫn `/chat/<id>` cũng mở cuộc trò chuyện | — |
+| **Ảnh đại diện** (Tài khoản: bấm ảnh hoặc "Đổi ảnh đại diện") | **Chụp ảnh** (máy ảnh trước), **Chọn từ thư viện**, **Xóa ảnh** (khi đang có). `image_picker` thu nhỏ còn tối đa 512 × 512, chất lượng 85 (nén lại bỏ phần lớn siêu dữ liệu; máy chủ xóa phần còn lại); kiểm tra ở máy: chỉ JPEG / PNG (theo chữ ký tệp), ≤ 2 MB; gửi multipart trường `file`; lỗi 400 của máy chủ hiện nguyên câu. Xong thì tải lại `/auth/me`. Ảnh hiện tròn (`BoxFit.cover`, không cắt ở máy) | `POST /users/me/avatar`, `DELETE /users/me/avatar` |
+
+Ảnh đại diện cần cookie phiên nên không dùng `Image.network`: `UserAvatar` tải qua `ApiClient` (chỉ nhận đường dẫn
+`/api/...` trên cùng máy chủ, không gửi cookie sang máy khác) và giữ **trong bộ nhớ** theo địa chỉ (tối đa 200 ảnh;
+`avatarUrl` có `?v=` nên đổi ảnh là đổi địa chỉ); không ghi ra đĩa, xóa khi đăng xuất / hết phiên. Chưa có ảnh thì hiện
+chữ cái đầu của tên. Nội dung tin nhắn chỉ giữ trong bộ nhớ của màn hình, không ghi nhật ký.
+
+Kiểm thử (máy chủ giả có luồng SSE): `test/chat_unit_test.dart` (đọc SSE: gói cắt giữa dòng / giữa ký tự UTF-8 /
+giữa `\r\n`, chú thích, nhiều dòng `data`; xem trước tin, thu hồi 24 giờ, ghép tin, giờ, ảnh JPEG / PNG, đường dẫn
+ảnh an toàn) và `test/chat_widget_test.dart` (danh sách, số chưa đọc, gửi tin, 429, tải tin cũ, sự kiện thời gian thực,
+"Đã xem", thu hồi, quyền trong thông tin nhóm, nhóm đơn vị 409, nối lại / hỏi định kỳ, xuống nền đóng luồng, quản trị
+không có trò chuyện, thông báo `/chat/5`, tải ảnh đại diện multipart và câu lỗi). Với API thật (chỉ đọc: danh sách,
+chi tiết, trang tin đầu, số chưa đọc, danh bạ, ảnh đại diện, mở luồng rồi đóng; không gửi tin, không báo đã đọc):
+
+```bash
+LIVE_API=http://localhost:3100 flutter test test/live_chat_test.dart
+```
 
 ## Đăng nhập và bảo mật
 
@@ -271,18 +299,24 @@ lib/
   util/task_forms.dart      Dữ liệu Giao nhanh / Sửa nhiệm vụ: kiểm tra, thân yêu cầu, chỉ gửi trường đã đổi
   util/account_security.dart  Kiểm tra mật khẩu mới (giống máy chủ), lấy / chia nhóm khóa 2 lớp, giải mã ảnh QR
   screens/search_screen.dart  Tìm nhiệm vụ (chờ gõ, lọc, phân trang)
+  screens/chat_*.dart       Trò chuyện: danh sách, cuộc trò chuyện, thông tin nhóm, danh bạ / tạo nhóm (mốc 4)
+  chat/sse.dart             Đọc luồng Server-Sent Events
+  chat/chat_service.dart    Số tin chưa đọc, luồng thời gian thực (nối lại, hỏi định kỳ khi lỗi)
+  models/chat_models.dart   Kiểu dữ liệu trò chuyện (part của models.dart)
+  services/avatar_cache.dart, widgets/avatar.dart  Ảnh đại diện tải kèm cookie, giữ trong bộ nhớ
   screens/security_screens.dart  Đổi mật khẩu, bật / tắt xác thực hai lớp (màn hình bắt buộc và từ Tài khoản)
   screens/                  Đăng nhập, Việc của tôi, Chi tiết + bảng thao tác, Giao nhanh / Sửa (task_manage.dart),
                             chọn người / đơn vị (pickers.dart), Thông báo, Tài khoản, màn hình chặn
   util/                     Hạn tương đối, định dạng ngày, nhóm "Cần xử lý", mô tả dòng hoạt động
   widgets/                  Thẻ nhiệm vụ, viên thuốc trạng thái / hạn, thông báo lỗi
-test/                       Kiểm thử đơn vị, giao diện (security_search_test.dart: mốc 3); live_api_test.dart,
-                            live_m2_test.dart, live_search_test.dart chạy với API thật
+test/                       Kiểm thử đơn vị, giao diện (security_search_test.dart: mốc 3; chat_unit_test.dart,
+                            chat_widget_test.dart: mốc 4); live_api_test.dart, live_m2_test.dart,
+                            live_search_test.dart, live_chat_test.dart chạy với API thật
 assets/                     Logo (màn hình đăng nhập) và ảnh nguồn của biểu tượng ứng dụng
 API-NEEDS.md                Những thay đổi API cần cho thông báo đẩy và mốc 2
 ```
 
-Gói dùng: `http`, `flutter_secure_storage`, `go_router`, `intl`, `flutter_localizations` (SDK), `image_picker`,
+Gói dùng: `http`, `http_parser` (kiểu tệp khi tải ảnh lên; đã có sẵn theo `http`), `flutter_secure_storage`, `go_router`, `intl`, `flutter_localizations` (SDK), `image_picker`,
 `file_picker`, `path_provider`, `open_filex`; mốc 2 (ghim đúng phiên bản): `local_auth` 3.0.2 (kèm
 `local_auth_android` 2.2.0, `local_auth_darwin` 2.0.4), `firebase_core` 4.15.0, `firebase_messaging` 16.7.0;
 khi phát triển: `flutter_launcher_icons`, `flutter_lints`. Màn hình khởi động cấu hình thủ công, không dùng gói.

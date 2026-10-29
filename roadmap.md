@@ -206,8 +206,9 @@ Nguyên tắc riêng:
       menu, đã đọc đến đâu, thông báo đẩy về điện thoại
 - [x] **G6. Web**: màn "Trò chuyện"; đổi ảnh đại diện ở "Tài khoản"
   (xong 29/10/2026: 16 kiểm thử API mới, tổng 128; Caddy không nén, không đệm luồng `/api/chat/stream`)
-- [ ] **G7. Ứng dụng di động**: tab "Trò chuyện", tạo nhóm, đổi ảnh đại diện (chụp hoặc chọn ảnh), mở đúng cuộc trò chuyện
+- [x] **G7. Ứng dụng di động**: tab "Trò chuyện", tạo nhóm, đổi ảnh đại diện (chụp hoặc chọn ảnh), mở đúng cuộc trò chuyện
       khi bấm thông báo
+  (xong 29/10/2026: 138 kiểm thử; chưa thử camera, thư viện ảnh thật và thông báo đẩy thật trên máy)
 
 ### Hợp đồng API (bản web và ứng dụng dùng chung)
 

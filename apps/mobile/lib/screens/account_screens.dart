@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../api/api_client.dart';
 import '../auth/auth_controller.dart';
 import '../constants.dart';
 import '../models/models.dart';
@@ -8,6 +11,7 @@ import '../push/push_service.dart';
 import '../security/app_lock.dart';
 import '../services/app_services.dart';
 import '../theme.dart';
+import '../widgets/avatar.dart';
 import '../widgets/common.dart';
 import 'security_screens.dart';
 
@@ -61,31 +65,31 @@ class AccountScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Tài khoản',
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white),
+                          Row(
+                            children: [
+                              const Expanded(
+                                child: Text(
+                                  'Tài khoản',
+                                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white),
+                                ),
+                              ),
+                              if (me != null)
+                                TextButton.icon(
+                                  key: const Key('change-avatar'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Palette.goldLight,
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                  onPressed: () => changeAvatar(context),
+                                  icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                                  label: const Text('Đổi ảnh đại diện'),
+                                ),
+                            ],
                           ),
                           const Spacer(),
                           Row(
                             children: [
-                              Container(
-                                width: 68,
-                                height: 68,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: Palette.red900,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Palette.goldLight, width: 2.5),
-                                ),
-                                child: Text(
-                                  _initials(me?.fullName ?? ''),
-                                  style: const TextStyle(
-                                    fontSize: 26,
-                                    color: Palette.goldLight,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
+                              _HeaderAvatar(me: me),
                               const SizedBox(width: 14),
                               Expanded(
                                 child: Column(
@@ -203,11 +207,153 @@ class AccountScreen extends StatelessWidget {
       ),
     );
   }
+}
 
-  static String _initials(String name) {
-    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return '?';
-    return parts.last.characters.first.toUpperCase();
+/// Ảnh đại diện trên đầu trang (viền vàng, nút máy ảnh nhỏ), bấm để đổi.
+class _HeaderAvatar extends StatelessWidget {
+  const _HeaderAvatar({required this.me});
+  final Me? me;
+
+  @override
+  Widget build(BuildContext context) {
+    final me = this.me;
+    return GestureDetector(
+      onTap: me == null ? null : () => changeAvatar(context),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          UserAvatar(
+            key: const Key('account-avatar'),
+            name: me?.fullName ?? '',
+            url: me?.avatarUrl,
+            size: 68,
+            borderColor: Palette.goldLight,
+            borderWidth: 2.5,
+          ),
+          if (me != null)
+            Positioned(
+              right: -2,
+              bottom: -2,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Palette.goldLight,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Palette.red900, width: 1.5),
+                ),
+                child: const Icon(Icons.photo_camera, size: 14, color: Palette.red900),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Đổi ảnh đại diện: Chụp ảnh / Chọn từ thư viện / Xóa ảnh (nếu đang có). Xong thì tải lại `/auth/me`.
+Future<void> changeAvatar(BuildContext context) async {
+  final app = AppScope.of(context);
+  final hasAvatar = app.auth.me?.avatarUrl != null;
+  final choice = await showModalBottomSheet<String>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (ctx) => SafeArea(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text('Ảnh đại diện', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Chụp ảnh'),
+              onTap: () => Navigator.pop(ctx, 'camera'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Chọn từ thư viện'),
+              onTap: () => Navigator.pop(ctx, 'gallery'),
+            ),
+            if (hasAvatar)
+              ListTile(
+                leading: Icon(Icons.delete_outline, color: Theme.of(ctx).colorScheme.error),
+                title: Text('Xóa ảnh', style: TextStyle(color: Theme.of(ctx).colorScheme.error)),
+                onTap: () => Navigator.pop(ctx, 'delete'),
+              ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 4, 16, 12),
+              child: Text(
+                'Ảnh JPEG hoặc PNG, tối đa 2 MB; ứng dụng tự thu nhỏ. Ảnh chỉ người đã đăng nhập hệ thống xem được.',
+                style: TextStyle(fontSize: 12, color: Palette.muted),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  if (choice == null || !context.mounted) return;
+  try {
+    if (choice == 'delete') {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Xóa ảnh đại diện?'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Xóa ảnh')),
+          ],
+        ),
+      );
+      if (ok != true || !context.mounted) return;
+      await _withProgress(context, 'Đang xóa ảnh...', () async {
+        await app.files.deleteAvatar();
+        await app.auth.refreshMe();
+      });
+      if (context.mounted) showMessage(context, 'Đã xóa ảnh đại diện');
+      return;
+    }
+    final picked = await app.files.pickAvatar(camera: choice == 'camera');
+    if (picked == null || !context.mounted) return;
+    await _withProgress(context, 'Đang tải ảnh lên...', () async {
+      await app.files.uploadAvatar(picked);
+      await app.auth.refreshMe();
+    });
+    if (context.mounted) showMessage(context, 'Đã đổi ảnh đại diện');
+  } on ApiException catch (e) {
+    if (context.mounted) showError(context, e);
+  }
+}
+
+/// Chạy [task] với hộp "đang xử lý" chặn thao tác khác; đóng hộp khi xong (kể cả khi lỗi).
+Future<T> _withProgress<T>(BuildContext context, String text, Future<T> Function() task) async {
+  final nav = Navigator.of(context, rootNavigator: true);
+  unawaited(
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (_) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          content: Row(
+            children: [
+              const SizedBox.square(dimension: 24, child: CircularProgressIndicator(strokeWidth: 2.5)),
+              const SizedBox(width: 16),
+              Expanded(child: Text(text)),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+  try {
+    return await task();
+  } finally {
+    if (nav.mounted) nav.pop();
   }
 }
 
@@ -225,7 +371,12 @@ class _SectionLabel extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             text.toUpperCase(),
-            style: const TextStyle(color: Palette.red800, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.8),
+            style: const TextStyle(
+              color: Palette.red800,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+            ),
           ),
         ],
       ),

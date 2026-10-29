@@ -4,6 +4,7 @@ import 'dart:io' show SocketException, HandshakeException;
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart' show MediaType;
 
 import '../config.dart';
 import 'session_store.dart';
@@ -171,12 +172,25 @@ class ApiClient {
   Future<dynamic> patch(String path, Object body) =>
       _json(() => _http.patch(uri(path), headers: _headers(json: true), body: jsonEncode(body)));
 
-  /// Tải tệp lên (multipart, trường `file`).
-  Future<dynamic> upload(String path, {required Uint8List bytes, required String filename, Map<String, Object?>? query}) {
+  Future<dynamic> delete(String path) => _json(() => _http.delete(uri(path), headers: _headers()));
+
+  /// Tải tệp lên (multipart, trường `file`). [contentType] ví dụ `image/jpeg` (mặc định application/octet-stream).
+  Future<dynamic> upload(
+    String path, {
+    required Uint8List bytes,
+    required String filename,
+    Map<String, Object?>? query,
+    String? contentType,
+  }) {
     return _json(() async {
       final req = http.MultipartRequest('POST', uri(path, query))
         ..headers.addAll(_headers())
-        ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
+        ..files.add(http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: filename,
+          contentType: contentType == null ? null : MediaType.parse(contentType),
+        ));
       return http.Response.fromStream(await _http.send(req));
     }, transferTimeout);
   }
@@ -186,6 +200,49 @@ class ApiClient {
     final res = await _send(() => _http.get(uri(path), headers: _headers()), transferTimeout);
     _check(res);
     return res.bodyBytes;
+  }
+
+  /// Địa chỉ đầy đủ cho đường dẫn máy chủ trả về sẵn (ví dụ `avatarUrl` = `/api/users/12/avatar?v=1a2b`).
+  /// Chỉ nhận đường dẫn tương đối trên **cùng máy chủ** (không gửi cookie phiên sang máy khác); sai thì trả null.
+  Uri? serverUri(String serverPath) {
+    if (!serverPath.startsWith('/api/') || serverPath.contains('..') || serverPath.contains('\\')) return null;
+    final parsed = Uri.tryParse(serverPath);
+    if (parsed == null || parsed.hasScheme || parsed.hasAuthority) return null;
+    return _base.replace(path: parsed.path, query: parsed.hasQuery ? parsed.query : null);
+  }
+
+  /// Tải ảnh / tệp theo đường dẫn máy chủ trả về (xem [serverUri]), giữ trong bộ nhớ.
+  Future<Uint8List> downloadServerPath(String serverPath) async {
+    final target = serverUri(serverPath);
+    if (target == null) throw ApiException(0, 'Đường dẫn không hợp lệ');
+    final res = await _send(() => _http.get(target, headers: _headers()), timeout);
+    _check(res);
+    return res.bodyBytes;
+  }
+
+  /// Mở luồng Server-Sent Events (GET, `Accept: text/event-stream`), trả về luồng byte khi máy chủ trả 2xx.
+  /// Mã lỗi xử lý như mọi yêu cầu khác (401: xóa phiên, về đăng nhập). [abort] hoàn thành thì ngắt kết nối.
+  Future<Stream<List<int>>> openEventStream(String path, {Future<void>? abort}) async {
+    final req = http.AbortableRequest('GET', uri(path), abortTrigger: abort)
+      ..headers.addAll({..._headers(), 'Accept': 'text/event-stream', 'Cache-Control': 'no-cache'});
+    final http.StreamedResponse res;
+    try {
+      res = await _http.send(req).timeout(timeout);
+    } on TimeoutException {
+      throw ApiException(0, 'Máy chủ không phản hồi, đồng chí thử lại sau');
+    } on http.RequestAbortedException {
+      throw ApiException(0, 'Đã ngắt kết nối');
+    } on SocketException {
+      throw ApiException(0, 'Không kết nối được máy chủ. Đồng chí kiểm tra mạng.');
+    } on HandshakeException {
+      throw ApiException(0, 'Kết nối không an toàn tới máy chủ, đã ngắt');
+    } on http.ClientException {
+      throw ApiException(0, 'Không kết nối được máy chủ. Đồng chí kiểm tra mạng.');
+    }
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      _check(await http.Response.fromStream(res).timeout(timeout));
+    }
+    return res.stream;
   }
 
   Future<dynamic> _json(Future<http.Response> Function() run, [Duration? limit]) async {

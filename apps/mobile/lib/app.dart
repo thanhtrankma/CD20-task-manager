@@ -5,8 +5,12 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import 'auth/auth_controller.dart';
+import 'models/models.dart';
 import 'push/messaging.dart';
 import 'screens/account_screens.dart';
+import 'screens/chat_info_screen.dart';
+import 'screens/chat_list_screen.dart';
+import 'screens/chat_thread_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/search_screen.dart';
@@ -36,7 +40,9 @@ GoRouter buildRouter(AuthController auth) {
         AuthStatus.mustChangePassword => go('/setup/password'),
         AuthStatus.twoFactorSetup => go('/setup/2fa'),
         AuthStatus.adminOnly || AuthStatus.offline => go('/blocked'),
-        AuthStatus.ready => preAppLocations.contains(loc) ? '/tasks' : null,
+        AuthStatus.ready => preAppLocations.contains(loc) || (loc.startsWith('/chat') && !_chatAllowed(auth))
+            ? '/tasks'
+            : null,
       };
     },
     routes: [
@@ -63,10 +69,27 @@ GoRouter buildRouter(AuthController auth) {
           taskId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
         ),
       ),
+      GoRoute(
+        path: '/chat/:id',
+        parentNavigatorKey: rootKey,
+        builder: (_, state) => ChatThreadScreen(
+          key: ValueKey('chat-${state.pathParameters['id']}'),
+          conversationId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0,
+        ),
+        routes: [
+          GoRoute(
+            path: 'info',
+            parentNavigatorKey: rootKey,
+            builder: (_, state) =>
+                ChatInfoScreen(conversationId: int.tryParse(state.pathParameters['id'] ?? '') ?? 0),
+          ),
+        ],
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => HomeShell(shell: shell),
         branches: [
           StatefulShellBranch(routes: [GoRoute(path: '/tasks', builder: (_, _) => const TasksScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/chat', builder: (_, _) => const ChatListScreen())]),
           StatefulShellBranch(
               routes: [GoRoute(path: '/notifications', builder: (_, _) => const NotificationsScreen())]),
           StatefulShellBranch(routes: [GoRoute(path: '/account', builder: (_, _) => const AccountScreen())]),
@@ -76,7 +99,14 @@ GoRouter buildRouter(AuthController auth) {
   );
 }
 
-/// Khung chính sau khi đăng nhập: Việc của tôi, Thông báo (huy hiệu số chưa đọc), Tài khoản.
+/// Tài khoản quản trị không dùng trò chuyện.
+bool _chatAllowed(AuthController auth) => auth.me != null && auth.me!.role != Role.admin;
+
+/// Thứ tự nhánh trong [StatefulShellRoute]: Việc của tôi, Trò chuyện, Thông báo, Tài khoản.
+const _chatBranch = 1;
+
+/// Khung chính sau khi đăng nhập: Việc của tôi, Trò chuyện (số tin chưa đọc; không có với quản trị),
+/// Thông báo (huy hiệu số chưa đọc), Tài khoản.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key, required this.shell});
   final StatefulNavigationShell shell;
@@ -97,21 +127,33 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     _app = AppScope.of(context);
     WidgetsBinding.instance.addObserver(this);
     _app.unread.start();
+    if (_chatAllowed(_app.auth)) _app.chat.start();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _app.unread.stop();
+    _app.chat.stop();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Quay lại ứng dụng: làm mới số chưa đọc và danh sách việc.
-    if (state == AppLifecycleState.resumed) {
-      _app.unread.refresh();
-      _app.events.changed();
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // Quay lại ứng dụng: làm mới số chưa đọc và danh sách việc, mở lại luồng trò chuyện.
+        _app.unread.refresh();
+        _app.events.changed();
+        _app.chat.setForeground(true);
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
+        // Xuống nền: đóng luồng trò chuyện (không giữ kết nối khi không dùng).
+        _app.chat.setForeground(false);
+      case AppLifecycleState.inactive:
+        // Tạm thời (hộp xác thực, kéo trung tâm điều khiển): giữ nguyên.
+        break;
     }
   }
 
@@ -120,29 +162,36 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     return Scaffold(
       body: widget.shell,
       bottomNavigationBar: ListenableBuilder(
-        listenable: _app.unread,
+        listenable: Listenable.merge([_app.unread, _app.chat]),
         builder: (context, _) {
           final unread = _app.unread.count;
+          final chatUnread = _app.chat.unread;
+          final showChat = _chatAllowed(_app.auth);
+          // Chỉ số nhánh ↔ vị trí trên thanh dưới (bỏ Trò chuyện với quản trị).
+          final branches = [0, if (showChat) _chatBranch, 2, 3];
+          final selected = branches.indexOf(widget.shell.currentIndex);
           return NavigationBar(
-            selectedIndex: widget.shell.currentIndex,
-            onDestinationSelected: (i) => widget.shell.goBranch(i, initialLocation: i == widget.shell.currentIndex),
+            selectedIndex: selected < 0 ? 0 : selected,
+            onDestinationSelected: (i) {
+              final b = branches[i];
+              widget.shell.goBranch(b, initialLocation: b == widget.shell.currentIndex);
+            },
             destinations: [
               const NavigationDestination(
                 icon: Icon(Icons.checklist_outlined),
                 selectedIcon: Icon(Icons.checklist),
                 label: 'Việc của tôi',
               ),
+              if (showChat)
+                NavigationDestination(
+                  key: const Key('nav-chat'),
+                  icon: _CountBadge(count: chatUnread, child: const Icon(Icons.forum_outlined)),
+                  selectedIcon: _CountBadge(count: chatUnread, child: const Icon(Icons.forum)),
+                  label: 'Trò chuyện',
+                ),
               NavigationDestination(
-                icon: Badge(
-                  isLabelVisible: unread > 0,
-                  label: Text(unread > 99 ? '99+' : '$unread'),
-                  child: const Icon(Icons.notifications_outlined),
-                ),
-                selectedIcon: Badge(
-                  isLabelVisible: unread > 0,
-                  label: Text(unread > 99 ? '99+' : '$unread'),
-                  child: const Icon(Icons.notifications),
-                ),
+                icon: _CountBadge(count: unread, child: const Icon(Icons.notifications_outlined)),
+                selectedIcon: _CountBadge(count: unread, child: const Icon(Icons.notifications)),
                 label: 'Thông báo',
               ),
               const NavigationDestination(
@@ -156,6 +205,16 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       ),
     );
   }
+}
+
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({required this.count, required this.child});
+  final int count;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) =>
+      Badge(isLabelVisible: count > 0, label: Text(count > 99 ? '99+' : '$count'), child: child);
 }
 
 class GiaoViecApp extends StatefulWidget {
@@ -209,12 +268,22 @@ class _GiaoViecAppState extends State<GiaoViecApp> {
     } else if (status == AuthStatus.loggedOut) {
       _s.lock.reset();
       _s.push.signedOut();
+      _s.chat.stop();
+      _s.avatars.clear();
       AppBadge.set(0);
     }
     _tryOpenPending();
   }
 
   void _onUnread() => AppBadge.set(_s.unread.count);
+
+  /// Đường dẫn màn hình trên cùng (kể cả màn hình mở bằng `push`, ví dụ `/chat/5`).
+  String _currentPath() {
+    final config = _router.routerDelegate.currentConfiguration;
+    final last = config.isEmpty ? null : config.last;
+    if (last is ImperativeRouteMatch) return last.matches.uri.path;
+    return config.uri.path;
+  }
 
   /// Máy chưa đặt khóa màn hình: khuyên một lần, không chặn.
   Future<void> _showScreenLockNotice() async {
@@ -240,21 +309,29 @@ class _GiaoViecAppState extends State<GiaoViecApp> {
   /// Thông báo tới khi đang mở ứng dụng: hiện thanh báo câu chung, làm mới số chưa đọc và danh sách.
   void _onForegroundMessage(PushMessage m) {
     if (_s.auth.status != AuthStatus.ready) return;
-    _s.unread.refresh();
-    _s.events.changed();
+    final chatId = m.chatId;
+    if (chatId != null) {
+      _s.chat.scheduleUnreadRefresh();
+      // Đang mở đúng cuộc trò chuyện (hoặc danh sách trò chuyện) thì không cần báo.
+      final path = _currentPath();
+      if (path == '/chat/$chatId' || path == '/chat') return;
+    } else {
+      _s.unread.refresh();
+      _s.events.changed();
+    }
     final text = (m.body?.isNotEmpty ?? false) ? m.body! : (m.title ?? 'Đồng chí có thông báo mới');
     final messenger = _messenger.currentState;
     messenger?.hideCurrentSnackBar();
     messenger?.showSnackBar(SnackBar(
       content: Text(text),
       duration: const Duration(seconds: 6),
-      action: m.taskId == null
+      action: m.taskId == null && m.chatId == null
           ? null
           : SnackBarAction(label: 'Xem', onPressed: () => _s.push.pendingOpen.value = m),
     ));
   }
 
-  /// Mở nhiệm vụ từ thông báo đã bấm: chờ đã đăng nhập, đã mở khóa và đã vào màn hình chính.
+  /// Mở nhiệm vụ / cuộc trò chuyện từ thông báo đã bấm: chờ đã đăng nhập, đã mở khóa và đã vào màn hình chính.
   void _tryOpenPending() {
     final m = _s.push.pendingOpen.value;
     if (m == null) return;
@@ -266,12 +343,22 @@ class _GiaoViecAppState extends State<GiaoViecApp> {
     final id = m.notificationId;
     if (id != null) _s.api.post('/notifications/$id/read').then((_) => _s.unread.refresh(), onError: (_) {});
     final taskId = m.taskId;
-    if (taskId != null) {
+    final chatId = m.chatId;
+    final target = taskId != null
+        ? '/task/$taskId'
+        : chatId != null && _chatAllowed(_s.auth)
+            ? '/chat/$chatId'
+            : null;
+    if (target != null) {
       WidgetsBinding.instance
         ..addPostFrameCallback((_) {
-          if (mounted) _router.push('/task/$taskId');
+          if (!mounted) return;
+          // Đang mở đúng cuộc trò chuyện đó thì thôi.
+          if (_currentPath() != target) _router.push(target);
         })
         ..scheduleFrame();
+    } else if (chatId != null) {
+      _router.go('/tasks');
     } else {
       _router.go('/notifications');
     }

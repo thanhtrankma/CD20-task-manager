@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
+import '../models/models.dart' show chatIdFromLink;
 import 'push_config.dart';
 
 /// Thông báo đẩy rút gọn: chỉ câu chung và đường dẫn (máy chủ không gửi nội dung nhiệm vụ).
@@ -11,7 +12,7 @@ class PushMessage {
   final String? title;
   final String? body;
 
-  /// Dạng `/tasks/123`.
+  /// Dạng `/tasks/123` (nhiệm vụ) hoặc `/chat/5` (cuộc trò chuyện).
   final String? link;
   final int? notificationId;
 
@@ -31,6 +32,9 @@ class PushMessage {
     final m = RegExp(r'^/tasks/(\d+)$').firstMatch(link ?? '');
     return m == null ? null : int.tryParse(m.group(1)!);
   }
+
+  /// Mã cuộc trò chuyện trong [link].
+  int? get chatId => chatIdFromLink(link);
 }
 
 enum PushPermission { granted, denied }

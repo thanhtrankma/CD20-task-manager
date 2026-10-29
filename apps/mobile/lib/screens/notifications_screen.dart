@@ -5,6 +5,7 @@ import '../models/models.dart';
 import '../services/app_services.dart';
 import '../util/format.dart';
 import '../widgets/common.dart';
+import 'chat_list_screen.dart' show openChat;
 import 'tasks_screen.dart' show openTask;
 
 /// Thông báo (50 thông báo gần nhất). Bấm vào: đánh dấu đã đọc và mở nhiệm vụ liên quan.
@@ -67,7 +68,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       _app.api.post('/notifications/${n.id}/read').then((_) {}, onError: (_) {});
     }
     final id = n.taskId;
-    if (id != null) openTask(context, id);
+    final chatId = n.chatId;
+    if (id != null) {
+      openTask(context, id);
+    } else if (chatId != null && _app.auth.me?.role != Role.admin) {
+      openChat(context, chatId);
+    }
   }
 
   Future<void> _readAll() async {
@@ -135,7 +141,7 @@ class _NotificationTile extends StatelessWidget {
         if (n.body != null) Text(n.body!, maxLines: 2, overflow: TextOverflow.ellipsis),
         Text(formatAgo(n.createdAt), style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant)),
       ]),
-      trailing: n.taskId != null ? const Icon(Icons.chevron_right) : null,
+      trailing: n.taskId != null || n.chatId != null ? const Icon(Icons.chevron_right) : null,
     );
   }
 }

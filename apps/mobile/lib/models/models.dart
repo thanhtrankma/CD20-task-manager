@@ -1,6 +1,8 @@
 // Kiểu dữ liệu trả về từ API (đối chiếu apps/web/src/api/types.ts).
 // Phân tích "dễ tính": trường thiếu hoặc sai kiểu được bỏ qua để ứng dụng không vỡ khi API mở rộng.
 
+part 'chat_models.dart';
+
 typedef Json = Map<String, dynamic>;
 
 Json _map(Object? v) => v is Map ? v.cast<String, dynamic>() : <String, dynamic>{};
@@ -97,6 +99,7 @@ class Me {
     this.email,
     this.rank,
     this.position,
+    this.avatarUrl,
   });
 
   final int id;
@@ -109,6 +112,9 @@ class Me {
   /// Cấp bậc, chức vụ (có thể trống).
   final String? rank;
   final String? position;
+
+  /// Đường dẫn ảnh đại diện (`/api/users/12/avatar?v=...`, cần cookie phiên) hoặc null.
+  final String? avatarUrl;
   final bool mustChangePassword;
   /// Vai trò bắt buộc dùng xác thực hai lớp nhưng tài khoản chưa bật.
   final bool twoFactorRequired;
@@ -133,6 +139,7 @@ class Me {
         twoFactorMandatory: _bool(j['twoFactorMandatory']),
         rank: _strOrNull(j['rank']),
         position: _strOrNull(j['position']),
+        avatarUrl: _strOrNull(j['avatarUrl']),
       );
 
   /// "Thượng úy Nguyễn Văn A" (có cấp bậc) hoặc họ tên.
@@ -458,6 +465,9 @@ class AppNotification {
     final m = RegExp(r'^/tasks/(\d+)').firstMatch(link ?? '');
     return m == null ? null : _intOrNull(m.group(1));
   }
+
+  /// Mã cuộc trò chuyện trong đường dẫn dạng `/chat/5`.
+  int? get chatId => chatIdFromLink(link);
 
   AppNotification markRead() =>
       AppNotification(id: id, title: title, body: body, link: link, readAt: DateTime.now(), createdAt: createdAt);
