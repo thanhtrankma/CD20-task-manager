@@ -122,11 +122,12 @@ export function UsersPage() {
             rowKey="id"
             loading={users.isLoading}
             dataSource={users.data}
-            scroll={{ x: 1100 }}
+            scroll={{ x: 1240 }}
             columns={[
               {
                 title: 'Họ tên',
                 dataIndex: 'fullName',
+                width: 230,
                 render: (name: string, u) => (
                   <Space size={8}>
                     <Avatar name={name} url={u.avatarUrl} id={u.id} size={28} />
