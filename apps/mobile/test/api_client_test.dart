@@ -210,9 +210,34 @@ void main() {
       expect(auth.me!.unitName, 'Khoa CNTT');
     });
 
-    test('phải đổi mật khẩu / bật 2 lớp: chặn, yêu cầu làm trên web', () async {
-      expect((await boot({'role': 'STAFF', 'mustChangePassword': true})).status, AuthStatus.setupRequired);
-      expect((await boot({'role': 'LEADER', 'twoFactorRequired': true})).status, AuthStatus.setupRequired);
+    test('phải đổi mật khẩu / bật 2 lớp: chuyển sang màn hình bắt buộc tương ứng', () async {
+      expect((await boot({'role': 'STAFF', 'mustChangePassword': true})).status, AuthStatus.mustChangePassword);
+      expect((await boot({'role': 'LEADER', 'twoFactorRequired': true})).status, AuthStatus.twoFactorSetup);
+      // Cả hai: đổi mật khẩu trước (máy chủ không cho tạo khóa 2 lớp khi chưa đổi mật khẩu).
+      expect(
+        (await boot({'role': 'LEADER', 'mustChangePassword': true, 'twoFactorRequired': true})).status,
+        AuthStatus.mustChangePassword,
+      );
+    });
+
+    test('403 TWO_FACTOR_REQUIRED / PASSWORD_CHANGE_REQUIRED giữa chừng: chuyển màn hình bắt buộc', () async {
+      var code = '';
+      final api = ApiClient(
+        baseUrl: 'http://api.test',
+        store: MemorySessionStore('t'),
+        client: MockClient((req) async => req.url.path == '/api/auth/me'
+            ? jsonRes({'role': 'LEADER'}, 200)
+            : jsonRes({'code': code, 'message': 'Cần thiết lập'}, 403)),
+      );
+      final auth = AuthController(api);
+      await auth.bootstrap();
+      expect(auth.status, AuthStatus.ready);
+      code = 'TWO_FACTOR_REQUIRED';
+      await expectLater(api.get('/tasks'), throwsA(isA<ApiException>()));
+      expect(auth.status, AuthStatus.twoFactorSetup);
+      code = 'PASSWORD_CHANGE_REQUIRED';
+      await expectLater(api.get('/tasks'), throwsA(isA<ApiException>()));
+      expect(auth.status, AuthStatus.mustChangePassword);
     });
 
     test('quản trị: không dùng ứng dụng', () async {

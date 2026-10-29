@@ -151,7 +151,9 @@ Mục tiêu: cán bộ cài ứng dụng của Nhà trường, nhận nhắc vi�
 - [x] **E2. Đăng nhập trên ứng dụng**: mã phiên lưu trong **kho bảo mật của điện thoại** (Keychain trên iOS, Keystore trên
       Android); dùng chung bảng phiên, chung cơ chế thu hồi khi đăng xuất. Bản phát hành chỉ kết nối HTTPS
   (đợt 1 xong 28/10/2026; đợt 2 xong cùng ngày: khóa ứng dụng, chặn chụp màn hình, thông báo đẩy, giao nhanh, sửa/hủy,
-  thêm người theo dõi, chia việc con; 88 kiểm thử. Chưa thử trên máy thật, Android emulator, chưa có dự án Firebase)
+  thêm người theo dõi, chia việc con; 88 kiểm thử. Chưa thử trên máy thật, Android emulator, chưa có dự án Firebase.
+  Đợt 3 xong 29/10/2026: tìm kiếm nhiệm vụ (tên, căn cứ, lọc trạng thái, quá hạn); đổi mật khẩu, bật/tắt xác thực hai
+  lớp ngay trên ứng dụng, kể cả khi bị bắt buộc lúc đăng nhập lần đầu; 111 kiểm thử)
 
 ### Tuần 12 – 13: Thông báo đẩy
 - [x] **E3. Bảng thiết bị** (Android/iOS, mã thiết bị); đăng ký khi đăng nhập, xóa khi đăng xuất

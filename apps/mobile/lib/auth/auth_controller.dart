@@ -9,14 +9,37 @@ enum AuthStatus {
   loggedOut,
   ready,
 
-  /// Tài khoản phải đổi mật khẩu hoặc bật xác thực hai lớp trên bản web trước.
-  setupRequired,
+  /// Đăng nhập lần đầu (hoặc quản trị đặt lại mật khẩu): phải đổi mật khẩu trước khi sử dụng.
+  mustChangePassword,
+
+  /// Vai trò bắt buộc xác thực hai lớp nhưng tài khoản chưa bật: phải bật trước khi sử dụng.
+  twoFactorSetup,
 
   /// Tài khoản quản trị: ứng dụng chỉ dành cho người giao, nhận nhiệm vụ.
   adminOnly,
 
   /// Có phiên đã lưu nhưng không kết nối được máy chủ.
   offline,
+}
+
+extension AuthStatusX on AuthStatus {
+  /// Đang ở bước bắt buộc hoàn tất thiết lập tài khoản.
+  bool get isSetup => this == AuthStatus.mustChangePassword || this == AuthStatus.twoFactorSetup;
+}
+
+/// Kết quả POST /auth/2fa/setup. Chứa khóa bí mật: chỉ giữ trong bộ nhớ, không ghi nhật ký.
+class TwoFactorSetup {
+  const TwoFactorSetup({required this.otpauthUrl, required this.qrDataUrl});
+  final String otpauthUrl;
+  final String qrDataUrl;
+
+  factory TwoFactorSetup.fromJson(Map<String, dynamic> j) => TwoFactorSetup(
+        otpauthUrl: j['otpauthUrl'] is String ? j['otpauthUrl'] as String : '',
+        qrDataUrl: j['qrDataUrl'] is String ? j['qrDataUrl'] as String : '',
+      );
+
+  @override
+  String toString() => 'TwoFactorSetup(***)';
 }
 
 /// Trạng thái đăng nhập của ứng dụng; bộ định tuyến lắng nghe để chuyển màn hình.
@@ -37,11 +60,12 @@ class AuthController extends ChangeNotifier {
   AuthStatus _status = AuthStatus.loading;
   AuthStatus get status => _status;
 
+  /// Chỉ báo khi trạng thái đổi. Bộ định tuyến nghe cái này (không nghe cả [AuthController]) để việc tải lại
+  /// thông tin người dùng (sau khi đổi mật khẩu, bật 2 lớp) không làm bộ định tuyến dựng lại các màn hình đang mở.
+  late final ValueNotifier<AuthStatus> statusListenable = ValueNotifier(_status);
+
   Me? _me;
   Me? get me => _me;
-
-  /// Lý do phải thiết lập trên web (đổi mật khẩu / bật xác thực hai lớp).
-  String? setupReason;
 
   /// Thông báo một lần cho màn hình đăng nhập (ví dụ: phiên đã hết hạn).
   String? notice;
@@ -50,6 +74,7 @@ class AuthController extends ChangeNotifier {
 
   void _set(AuthStatus s) {
     _status = s;
+    statusListenable.value = s;
     notifyListeners();
   }
 
@@ -74,7 +99,7 @@ class AuthController extends ChangeNotifier {
       } else if (e.status == 0) {
         offlineMessage = e.message;
         _set(AuthStatus.offline);
-      } else if (_status != AuthStatus.setupRequired) {
+      } else if (!_status.isSetup) {
         offlineMessage = e.message;
         _set(AuthStatus.offline);
       }
@@ -85,6 +110,31 @@ class AuthController extends ChangeNotifier {
   Future<void> login(String username, String password, {String? otp}) async {
     notice = null;
     await api.login(username, password, otp: otp);
+    await refreshMe();
+  }
+
+  /// POST /auth/change-password (máy chủ giữ phiên này, thu hồi các phiên khác) rồi tải lại thông tin.
+  /// Ném [ApiException] (ví dụ 400 "Mật khẩu hiện tại không đúng").
+  Future<void> changePassword(String currentPassword, String newPassword) async {
+    await api.post('/auth/change-password', {'currentPassword': currentPassword, 'newPassword': newPassword});
+    await refreshMe();
+  }
+
+  /// Bước 1 bật xác thực hai lớp: máy chủ tạo khóa bí mật (chưa kích hoạt).
+  Future<TwoFactorSetup> startTwoFactorSetup() async {
+    final data = await api.post('/auth/2fa/setup');
+    return TwoFactorSetup.fromJson(data is Map ? data.cast<String, dynamic>() : const {});
+  }
+
+  /// Bước 2: nhập đúng mã 6 số thì máy chủ kích hoạt.
+  Future<void> enableTwoFactor(String code) async {
+    await api.post('/auth/2fa/enable', {'code': code});
+    await refreshMe();
+  }
+
+  /// Tắt xác thực hai lớp (chỉ khi vai trò không bắt buộc): cần mật khẩu và mã hiện tại.
+  Future<void> disableTwoFactor(String password, String code) async {
+    await api.post('/auth/2fa/disable', {'password': password, 'code': code});
     await refreshMe();
   }
 
@@ -101,11 +151,9 @@ class AuthController extends ChangeNotifier {
     if (me.role == Role.admin) {
       _set(AuthStatus.adminOnly);
     } else if (me.mustChangePassword) {
-      setupReason = 'đổi mật khẩu lần đầu';
-      _set(AuthStatus.setupRequired);
+      _set(AuthStatus.mustChangePassword);
     } else if (me.twoFactorRequired) {
-      setupReason = 'bật xác thực hai lớp';
-      _set(AuthStatus.setupRequired);
+      _set(AuthStatus.twoFactorSetup);
     } else {
       _set(AuthStatus.ready);
     }
@@ -116,9 +164,10 @@ class AuthController extends ChangeNotifier {
     _signedOut();
   }
 
+  /// Máy chủ trả 403 PASSWORD_CHANGE_REQUIRED / TWO_FACTOR_REQUIRED với một yêu cầu bất kỳ.
   void _setupRequired(String code) {
-    setupReason = code == 'TWO_FACTOR_REQUIRED' ? 'bật xác thực hai lớp' : 'đổi mật khẩu lần đầu';
-    _set(AuthStatus.setupRequired);
+    final next = code == 'TWO_FACTOR_REQUIRED' ? AuthStatus.twoFactorSetup : AuthStatus.mustChangePassword;
+    if (_status != next) _set(next);
   }
 
   Future<void> _signedOut() async {

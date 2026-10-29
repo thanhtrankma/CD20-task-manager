@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../auth/auth_controller.dart';
 import '../constants.dart';
+import '../models/models.dart';
 import '../push/push_service.dart';
 import '../security/app_lock.dart';
 import '../services/app_services.dart';
 import '../theme.dart';
+import '../widgets/common.dart';
+import 'security_screens.dart';
 
 Future<void> confirmLogout(BuildContext context) async {
   final ok = await showDialog<bool>(
@@ -22,13 +26,19 @@ Future<void> confirmLogout(BuildContext context) async {
   if (ok == true && context.mounted) await AppScope.of(context).auth.logout();
 }
 
-/// Tài khoản: họ tên, đơn vị, vai trò, đăng xuất.
+/// Tài khoản: họ tên, đơn vị, vai trò, đổi mật khẩu, xác thực hai lớp, khóa ứng dụng, đăng xuất.
 class AccountScreen extends StatelessWidget {
   const AccountScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final me = AppScope.of(context).auth.me;
+    final auth = AppScope.of(context).auth;
+    // Tải lại /auth/me (sau khi bật / tắt xác thực hai lớp) thì vẽ lại.
+    return ListenableBuilder(listenable: auth, builder: (context, _) => _build(context, auth));
+  }
+
+  Widget _build(BuildContext context, AuthController auth) {
+    final me = auth.me;
     final theme = Theme.of(context);
     final topPad = MediaQuery.paddingOf(context).top;
     final position = me?.position?.trim() ?? '';
@@ -152,11 +162,23 @@ class AccountScreen extends StatelessWidget {
                     subtitle: Text(me!.email!),
                   ),
                 const Divider(),
+                const _SectionLabel('Bảo mật tài khoản'),
+                ListTile(
+                  key: const Key('change-password'),
+                  leading: const Icon(Icons.password),
+                  title: const Text('Đổi mật khẩu'),
+                  subtitle: const Text('Ít nhất 10 ký tự, gồm cả chữ và số'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.push('/security/password'),
+                ),
+                if (me != null) _TwoFactorTile(me: me),
+                const Divider(),
+                const _SectionLabel('Điện thoại này'),
                 const _SecuritySection(),
                 const Padding(
                   padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
                   child: Text(
-                    'Đổi mật khẩu, xác thực hai lớp, thư nhắc việc: đồng chí thực hiện trên trang web của hệ thống.',
+                    'Thư nhắc việc: đồng chí đăng ký, thay đổi trên trang web của hệ thống.',
                     style: TextStyle(fontSize: 13),
                   ),
                 ),
@@ -186,6 +208,92 @@ class AccountScreen extends StatelessWidget {
     final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
     if (parts.isEmpty) return '?';
     return parts.last.characters.first.toUpperCase();
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 2),
+      child: Row(
+        children: [
+          const Star(size: 11, color: Palette.red700),
+          const SizedBox(width: 6),
+          Text(
+            text.toUpperCase(),
+            style: const TextStyle(color: Palette.red800, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 0.8),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Trạng thái xác thực hai lớp: chưa bật → nút bật; đang bật, không bắt buộc → nút tắt;
+/// đang bật, vai trò bắt buộc → giải thích, mất điện thoại thì báo quản trị đặt lại.
+class _TwoFactorTile extends StatelessWidget {
+  const _TwoFactorTile({required this.me});
+  final Me me;
+
+  Future<void> _disable(BuildContext context) async {
+    final ok = await showDisableTwoFactorDialog(context);
+    if (ok && context.mounted) showMessage(context, 'Đã tắt xác thực hai lớp');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!me.totpEnabled) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const ListTile(
+            key: Key('2fa-off'),
+            leading: Icon(Icons.shield_outlined),
+            title: Text('Xác thực hai lớp: chưa bật'),
+            subtitle: Text(
+              'Khi bật, mỗi lần đăng nhập đồng chí nhập thêm mã 6 chữ số từ ứng dụng xác thực '
+              '(Google Authenticator, Microsoft Authenticator). Kẻ gian biết mật khẩu cũng không đăng nhập được.',
+            ),
+            isThreeLine: true,
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(72, 0, 16, 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.tonalIcon(
+                onPressed: () => context.push('/security/2fa'),
+                icon: const Icon(Icons.verified_user_outlined, size: 18),
+                label: const Text('Bật xác thực hai lớp'),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    if (me.twoFactorMandatory) {
+      return ListTile(
+        key: const Key('2fa-mandatory'),
+        leading: const Icon(Icons.verified_user, color: Palette.olive),
+        title: const Text('Xác thực hai lớp: đang bật (bắt buộc)'),
+        subtitle: Text(
+          'Vai trò ${roleLabel[me.role]} bắt buộc dùng xác thực hai lớp, không tắt được. '
+          'Mất điện thoại hoặc xóa ứng dụng xác thực: đồng chí báo quản trị hệ thống đặt lại.',
+        ),
+        isThreeLine: true,
+      );
+    }
+    return ListTile(
+      key: const Key('2fa-on'),
+      leading: const Icon(Icons.verified_user, color: Palette.olive),
+      title: const Text('Xác thực hai lớp: đang bật'),
+      subtitle: const Text('Mỗi lần đăng nhập cần mã 6 chữ số từ ứng dụng xác thực.'),
+      isThreeLine: true,
+      trailing: OutlinedButton(onPressed: () => _disable(context), child: const Text('Tắt')),
+    );
   }
 }
 
@@ -321,7 +429,7 @@ class _SecuritySectionState extends State<_SecuritySection> {
   }
 }
 
-/// Màn hình chặn: tài khoản phải thiết lập trên web trước, tài khoản quản trị, hoặc mất kết nối.
+/// Màn hình chặn: tài khoản quản trị, hoặc có phiên nhưng mất kết nối máy chủ.
 class BlockedScreen extends StatelessWidget {
   const BlockedScreen({super.key, required this.status});
   final AuthStatus status;
@@ -329,25 +437,18 @@ class BlockedScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = AppScope.of(context).auth;
-    final (icon, title, text) = switch (status) {
-      AuthStatus.adminOnly => (
-        Icons.admin_panel_settings_outlined,
-        'Ứng dụng dành cho người giao, nhận nhiệm vụ',
-        'Tài khoản quản trị hệ thống không dùng trên ứng dụng di động. '
-            'Đồng chí quản trị hệ thống trên trang web.',
-      ),
-      AuthStatus.offline => (
-        Icons.cloud_off,
-        'Không kết nối được máy chủ',
-        auth.offlineMessage ?? 'Đồng chí kiểm tra kết nối mạng rồi thử lại.',
-      ),
-      _ => (
-        Icons.manage_accounts_outlined,
-        'Cần hoàn tất thiết lập tài khoản',
-        'Tài khoản của đồng chí cần ${auth.setupReason ?? 'hoàn tất thiết lập'} trước khi sử dụng. '
-            'Đồng chí đăng nhập trang web của hệ thống trên máy tính để thực hiện, sau đó quay lại ứng dụng.',
-      ),
-    };
+    final (icon, title, text) = status == AuthStatus.adminOnly
+        ? (
+            Icons.admin_panel_settings_outlined,
+            'Ứng dụng dành cho người giao, nhận nhiệm vụ',
+            'Tài khoản quản trị hệ thống không dùng trên ứng dụng di động. '
+                'Đồng chí quản trị hệ thống trên trang web.',
+          )
+        : (
+            Icons.cloud_off,
+            'Không kết nối được máy chủ',
+            auth.offlineMessage ?? 'Đồng chí kiểm tra kết nối mạng rồi thử lại.',
+          );
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -370,7 +471,7 @@ class BlockedScreen extends StatelessWidget {
                   FilledButton.icon(
                     onPressed: auth.refreshMe,
                     icon: const Icon(Icons.refresh),
-                    label: Text(status == AuthStatus.offline ? 'Thử lại' : 'Tôi đã thiết lập xong'),
+                    label: const Text('Thử lại'),
                   ),
                 const SizedBox(height: 8),
                 OutlinedButton.icon(

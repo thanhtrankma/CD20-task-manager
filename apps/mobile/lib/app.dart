@@ -9,6 +9,8 @@ import 'push/messaging.dart';
 import 'screens/account_screens.dart';
 import 'screens/login_screen.dart';
 import 'screens/notifications_screen.dart';
+import 'screens/search_screen.dart';
+import 'screens/security_screens.dart';
 import 'screens/task_detail_screen.dart';
 import 'screens/tasks_screen.dart';
 import 'security/lock_screen.dart';
@@ -16,20 +18,25 @@ import 'services/app_services.dart';
 import 'services/badge.dart';
 import 'theme.dart';
 
+/// Màn hình trước khi vào ứng dụng (không mở nhiệm vụ từ thông báo đẩy khi đang ở đây).
+const preAppLocations = {'/splash', '/login', '/blocked', '/setup/password', '/setup/2fa'};
+
 GoRouter buildRouter(AuthController auth) {
   final rootKey = GlobalKey<NavigatorState>();
   return GoRouter(
     navigatorKey: rootKey,
     initialLocation: '/splash',
-    refreshListenable: auth,
+    refreshListenable: auth.statusListenable,
     redirect: (context, state) {
       final loc = state.matchedLocation;
       String? go(String target) => loc == target ? null : target;
       return switch (auth.status) {
         AuthStatus.loading => go('/splash'),
         AuthStatus.loggedOut => go('/login'),
-        AuthStatus.setupRequired || AuthStatus.adminOnly || AuthStatus.offline => go('/blocked'),
-        AuthStatus.ready => const {'/splash', '/login', '/blocked'}.contains(loc) ? '/tasks' : null,
+        AuthStatus.mustChangePassword => go('/setup/password'),
+        AuthStatus.twoFactorSetup => go('/setup/2fa'),
+        AuthStatus.adminOnly || AuthStatus.offline => go('/blocked'),
+        AuthStatus.ready => preAppLocations.contains(loc) ? '/tasks' : null,
       };
     },
     routes: [
@@ -39,6 +46,15 @@ GoRouter buildRouter(AuthController auth) {
         path: '/blocked',
         builder: (_, _) => ListenableBuilder(listenable: auth, builder: (_, _) => BlockedScreen(status: auth.status)),
       ),
+      GoRoute(path: '/setup/password', builder: (_, _) => const ForcedChangePasswordScreen()),
+      GoRoute(path: '/setup/2fa', builder: (_, _) => const ForcedTwoFactorScreen()),
+      GoRoute(path: '/search', parentNavigatorKey: rootKey, builder: (_, _) => const SearchScreen()),
+      GoRoute(
+        path: '/security/password',
+        parentNavigatorKey: rootKey,
+        builder: (_, _) => const ChangePasswordScreen(),
+      ),
+      GoRoute(path: '/security/2fa', parentNavigatorKey: rootKey, builder: (_, _) => const TwoFactorSetupScreen()),
       GoRoute(
         path: '/task/:id',
         parentNavigatorKey: rootKey,
@@ -245,7 +261,7 @@ class _GiaoViecAppState extends State<GiaoViecApp> {
     if (_s.auth.status == AuthStatus.loggedOut) return; // Giữ lại, mở sau khi đăng nhập.
     if (_s.auth.status != AuthStatus.ready || _s.lock.locked) return;
     final path = _router.routerDelegate.currentConfiguration.uri.path;
-    if (const {'/splash', '/login', '/blocked'}.contains(path) || path.isEmpty) return;
+    if (preAppLocations.contains(path) || path.isEmpty) return;
     _s.push.pendingOpen.value = null;
     final id = m.notificationId;
     if (id != null) _s.api.post('/notifications/$id/read').then((_) => _s.unread.refresh(), onError: (_) {});

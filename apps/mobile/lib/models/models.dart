@@ -92,6 +92,8 @@ class Me {
     this.unitId,
     required this.mustChangePassword,
     required this.twoFactorRequired,
+    this.totpEnabled = false,
+    this.twoFactorMandatory = false,
     this.email,
     this.rank,
     this.position,
@@ -108,7 +110,14 @@ class Me {
   final String? rank;
   final String? position;
   final bool mustChangePassword;
+  /// Vai trò bắt buộc dùng xác thực hai lớp nhưng tài khoản chưa bật.
   final bool twoFactorRequired;
+
+  /// Đã bật xác thực hai lớp.
+  final bool totpEnabled;
+
+  /// Vai trò bắt buộc dùng xác thực hai lớp (không được tắt), theo chính sách máy chủ.
+  final bool twoFactorMandatory;
 
   factory Me.fromJson(Json j) => Me(
         id: _int(j['id']),
@@ -120,6 +129,8 @@ class Me {
         email: _strOrNull(j['email']),
         mustChangePassword: _bool(j['mustChangePassword']),
         twoFactorRequired: _bool(j['twoFactorRequired']),
+        totpEnabled: _bool(j['totpEnabled']),
+        twoFactorMandatory: _bool(j['twoFactorMandatory']),
         rank: _strOrNull(j['rank']),
         position: _strOrNull(j['position']),
       );

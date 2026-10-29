@@ -354,6 +354,9 @@ void main() {
     await startApp(tester, token: 'abc');
     await tester.tap(find.text('Tài khoản'));
     await tester.pumpAndSettle();
+    // Màn hình dài hơn (thêm mục Bảo mật tài khoản): cuộn tới phần "Điện thoại này".
+    await tester.scrollUntilVisible(find.textContaining('Máy chủ đã bật gửi thông báo'), 200,
+        scrollable: find.byType(Scrollable).first);
     expect(find.text('Khóa ứng dụng'), findsOneWidget);
     expect(find.textContaining('chưa được cấu hình'), findsOneWidget);
     expect(find.textContaining('Máy chủ đã bật gửi thông báo tới điện thoại · 1 thiết bị'), findsOneWidget);

@@ -14,12 +14,12 @@ của API NestJS (`apps/api`, tiền tố `/api`), không có máy chủ riêng.
 | Màn hình | Nội dung | API |
 |---|---|---|
 | Đăng nhập | Tên đăng nhập, mật khẩu; bước 2 nhập mã xác thực 6 số khi máy chủ báo `OTP_REQUIRED` | `POST /auth/login`, `GET /auth/me` |
-| Chặn | Tài khoản phải đổi mật khẩu / bật xác thực hai lớp (làm trên web trước); tài khoản quản trị; mất kết nối | `GET /auth/me`, mã 403 `PASSWORD_CHANGE_REQUIRED`, `TWO_FACTOR_REQUIRED` |
+| Chặn | Tài khoản quản trị; mất kết nối (nút Thử lại). Đổi mật khẩu / bật xác thực hai lớp bắt buộc: làm ngay trên ứng dụng (mốc 3) | `GET /auth/me` |
 | **Việc của tôi** (mặc định) | Mục **Cần xử lý** nhóm theo lý do (Quá hạn, Đến hạn hôm nay, Chờ đồng chí duyệt...) theo thứ tự máy chủ, nút **Đã nhận** một chạm trên thẻ việc mới; mục Được giao, Đã giao, Chờ duyệt (chỉ lãnh đạo, chỉ huy đơn vị), Theo dõi; số việc trên từng mục; kéo xuống để tải lại; cuộn để tải trang tiếp | `GET /tasks/todo`, `GET /tasks?view=&page=`, `GET /tasks/counts` |
 | Chi tiết nhiệm vụ | Thông tin, chủ trì / phối hợp (đã nhận hay chưa), người theo dõi, căn cứ, việc cha / con, tệp đính kèm (tải về, mở bằng ứng dụng của máy), báo cáo, gia hạn, hoạt động, trao đổi | `GET /tasks/:id`, `GET /files/:id/download` |
 | Thao tác một chạm | Đã nhận nhiệm vụ; Cập nhật tiến độ (0–100%, ghi chú); Nộp báo cáo (**chụp ảnh**, ảnh có sẵn, chọn tệp PDF/Word/Excel/PowerPoint/ảnh); Xin gia hạn; Đôn đốc (báo số lần còn lại, 429 khi quá 3 lần/ngày); Duyệt / Trả lại báo cáo; Chấp thuận / Không chấp thuận gia hạn; Theo dõi / Bỏ theo dõi; gửi ý kiến | `POST /tasks/:id/acknowledge`, `/progress`, `/submissions`, `/extensions`, `/nudge`, `/follow`, `/unfollow`, `/comments`; `POST /files?taskId=`; `POST /submissions/:id/review`; `POST /tasks/extensions/:id/decide` |
 | Thông báo | Danh sách, chưa đọc tô đậm, bấm để mở nhiệm vụ (`/tasks/123`), "Đọc hết"; huy hiệu số chưa đọc trên thanh dưới (làm mới mỗi phút và khi quay lại ứng dụng) | `GET /notifications`, `POST /notifications/:id/read`, `POST /notifications/read-all`, `GET /notifications/unread-count` |
-| Tài khoản | Họ tên, tên đăng nhập, đơn vị, vai trò, đăng xuất | `POST /auth/logout` |
+| Tài khoản | Họ tên, tên đăng nhập, đơn vị, vai trò, đổi mật khẩu, xác thực hai lớp (mốc 3), đăng xuất | `POST /auth/logout` |
 
 Lỗi từ API (`message` dạng chuỗi hoặc mảng) hiện trên thanh thông báo dưới màn hình.
 Các thao tác hiện theo `permissions` (`manage`, `work`, `acknowledge`) và trạng thái nhiệm vụ, giống bản web.
@@ -35,6 +35,23 @@ Các thao tác hiện theo `permissions` (`manage`, `work`, `acknowledge`) và t
 | **Chia việc con** (nút ở Chi tiết, khi đồng chí là người thực hiện và có quyền giao việc) | Bảng Giao nhanh có `parentId`; hạn mặc định không trễ hơn việc cha | `POST /tasks` |
 | Thông báo đẩy | Xin quyền sau khi đăng nhập; đang mở ứng dụng thì hiện thanh báo câu chung + nút **Xem**; bấm thông báo khi ứng dụng ở nền / đã tắt thì mở nhiệm vụ sau khi mở khóa và đăng nhập xong. Tài khoản: trạng thái thông báo trên máy này và thông tin `mobile` của máy chủ | `POST /devices`, `POST /devices/unregister`, `GET /notifications/settings` |
 | Số trên biểu tượng (iOS) | Đặt bằng số thông báo chưa đọc mỗi lần làm mới; máy chủ gửi `aps.badge` trong thông báo đẩy | — |
+
+## Mốc 3: tìm nhiệm vụ, đổi mật khẩu, xác thực hai lớp trên ứng dụng
+
+| Màn hình / chức năng | Nội dung | API |
+|---|---|---|
+| **Tìm nhiệm vụ** (nút kính lúp trên đầu "Việc của tôi") | Ô tìm tự mở bàn phím; tìm sau khi ngừng gõ 400 ms (bấm "Tìm" trên bàn phím thì tìm ngay), tối thiểu 2 ký tự; tìm theo tên / căn cứ trong mọi việc đồng chí được xem (máy chủ giới hạn phạm vi); lọc **Quá hạn** và theo trạng thái (Mới giao, Đang thực hiện, Chờ duyệt, Bị trả lại, Hoàn thành, Đã hủy); cuộn để tải trang tiếp; thẻ việc như các mục khác, bấm mở Chi tiết; không có kết quả: "Không tìm thấy nhiệm vụ phù hợp". Máy chủ cũ chưa có `overdue` (trả 400) thì ẩn ô "Quá hạn", tìm lại không lọc, không báo lỗi | `GET /tasks?q=&page=&pageSize=20&status=&overdue=1` |
+| **Đổi mật khẩu lần đầu** (bắt buộc, khi `/auth/me` có `mustChangePassword` hoặc máy chủ trả 403 `PASSWORD_CHANGE_REQUIRED`) | Đầu trang đỏ, logo như màn đăng nhập; mật khẩu hiện tại, mật khẩu mới, nhập lại (có nút hiện / ẩn). Kiểm tra giống máy chủ: ít nhất 10 ký tự, có cả chữ và số, khác mật khẩu cũ, nhập lại khớp. Lỗi máy chủ (ví dụ "Mật khẩu hiện tại không đúng", mã 400) hiện ngay dưới biểu mẫu. Xong: tải lại `/auth/me`, vào ứng dụng hoặc sang bật xác thực hai lớp nếu vai trò bắt buộc. Nút Đăng xuất | `POST /auth/change-password {currentPassword, newPassword}` → 204 (giữ phiên này, thu hồi phiên khác), `GET /auth/me` |
+| **Bật xác thực hai lớp** (bắt buộc khi `twoFactorRequired` hoặc 403 `TWO_FACTOR_REQUIRED`; vai trò bắt buộc do máy chủ quy định, hiện là Lãnh đạo) | Gọi tạo khóa **một lần** khi mở màn hình. Vì khó quét mã QR trên chính điện thoại đang xem: hiện **khóa** (tham số `secret` trong `otpauthUrl`) chia nhóm 4 ký tự, nút **Sao chép khóa**, hướng dẫn thêm thủ công vào Google Authenticator / Microsoft Authenticator (tên tài khoản = tên đăng nhập, loại "Dựa trên thời gian"); kèm **mã QR** (giải mã `data:image/png;base64,...`, `Image.memory`) để quét bằng máy khác; rồi nhập mã 6 số. Xong: tải lại `/auth/me`. Nút Đăng xuất | `POST /auth/2fa/setup` → `{otpauthUrl, qrDataUrl}`, `POST /auth/2fa/enable {code}` → 204 |
+| Tài khoản → **Bảo mật tài khoản** | **Đổi mật khẩu** (cùng biểu mẫu, không bắt buộc). **Xác thực hai lớp**: chưa bật → nút "Bật xác thực hai lớp" (cùng màn hình thiết lập); đang bật, không bắt buộc → nút "Tắt" (hộp hỏi mật khẩu + mã hiện tại); đang bật, vai trò bắt buộc → giải thích không tắt được, mất điện thoại thì báo quản trị hệ thống đặt lại. Thư nhắc việc vẫn đổi trên web | `POST /auth/change-password`, `/auth/2fa/setup`, `/auth/2fa/enable`, `POST /auth/2fa/disable {password, code}` → 204 |
+
+Bảo mật các màn hình này: khóa bí mật và ảnh QR chỉ giữ trong bộ nhớ của màn hình, bỏ khi rời màn hình; nếu đồng chí
+đã bấm "Sao chép khóa" thì bộ nhớ tạm (clipboard) được xóa khi rời màn hình. Không ghi nhật ký mật khẩu, khóa, mã
+(`TwoFactorSetup.toString()` không in khóa). Ô mật khẩu che ký tự, có nút hiện / ẩn, tắt gợi ý bàn phím. Android đã
+chặn chụp màn hình toàn ứng dụng (`FLAG_SECURE`).
+
+Bộ định tuyến chỉ nghe **thay đổi trạng thái** đăng nhập (`AuthController.statusListenable`), không nghe mọi lần tải lại
+`/auth/me`; nhờ vậy tải lại thông tin sau khi đổi mật khẩu / bật 2 lớp không dựng lại các màn hình đang mở.
 
 ## Đăng nhập và bảo mật
 
@@ -211,6 +228,17 @@ ra), tạo **một** nhiệm vụ "[Thử app] Kiểm tra ứng dụng di độn
 bỏ theo dõi → ý kiến → xin gia hạn → đọc thông báo → đôn đốc → chấp thuận gia hạn → tải ảnh lên → nộp báo cáo →
 tải tệp về → duyệt → Hoàn thành → đăng xuất. Không đặt `LIVE_API` thì kiểm thử này bị bỏ qua.
 
+Mốc 3 (chỉ đọc, không tạo dữ liệu):
+
+```bash
+LIVE_API=http://localhost:3100 flutter test test/live_search_test.dart
+```
+
+`canbo` tìm lại một nhiệm vụ theo một từ trong tên → kiểm tra không có kết quả → lọc theo trạng thái → trang 2 (nếu
+có) → lọc quá hạn (`overdue=1`; máy chủ cũ trả 400 thì ghi nhận) → đăng xuất. Đổi mật khẩu / bật 2 lớp **không** thử
+với API thật (không có tài khoản thử dùng một lần; không đổi mật khẩu, không bật 2 lớp trên tài khoản mẫu); các luồng này
+được kiểm thử bằng máy chủ giả trong `test/security_search_test.dart`.
+
 Mốc 2:
 
 ```bash
@@ -231,7 +259,8 @@ lib/
   constants.dart            Nhãn, màu trạng thái / ưu tiên / hạn / nhóm "Cần xử lý" (giống bản web)
   api/api_client.dart       Gọi API: cookie phiên, lỗi 401/403, OTP, tải lên / tải về
   api/session_store.dart    Lưu mã phiên trong Keychain / Keystore
-  auth/auth_controller.dart Trạng thái đăng nhập (đăng nhập, chặn, hết phiên, đăng xuất)
+  auth/auth_controller.dart Trạng thái đăng nhập (đăng nhập, đổi mật khẩu / bật 2 lớp bắt buộc, chặn, hết phiên,
+                            đăng xuất); gọi đổi mật khẩu, bật / tắt xác thực hai lớp
   models/models.dart        Kiểu dữ liệu API (đọc "dễ tính", thiếu trường không lỗi)
   services/app_services.dart  AppScope, sự kiện tải lại danh sách, số thông báo chưa đọc
   services/attachments.dart   Chụp ảnh, chọn tệp, tải lên, tải về và mở tệp, dọn tệp tạm
@@ -240,11 +269,15 @@ lib/
   security/                 Khóa ứng dụng (thời gian khóa lại, xác thực) và màn hình khóa
   push/                     Cấu hình FCM từ dart-define, lớp FCM (tách để kiểm thử), đăng ký thiết bị
   util/task_forms.dart      Dữ liệu Giao nhanh / Sửa nhiệm vụ: kiểm tra, thân yêu cầu, chỉ gửi trường đã đổi
+  util/account_security.dart  Kiểm tra mật khẩu mới (giống máy chủ), lấy / chia nhóm khóa 2 lớp, giải mã ảnh QR
+  screens/search_screen.dart  Tìm nhiệm vụ (chờ gõ, lọc, phân trang)
+  screens/security_screens.dart  Đổi mật khẩu, bật / tắt xác thực hai lớp (màn hình bắt buộc và từ Tài khoản)
   screens/                  Đăng nhập, Việc của tôi, Chi tiết + bảng thao tác, Giao nhanh / Sửa (task_manage.dart),
                             chọn người / đơn vị (pickers.dart), Thông báo, Tài khoản, màn hình chặn
   util/                     Hạn tương đối, định dạng ngày, nhóm "Cần xử lý", mô tả dòng hoạt động
   widgets/                  Thẻ nhiệm vụ, viên thuốc trạng thái / hạn, thông báo lỗi
-test/                       Kiểm thử đơn vị, giao diện; live_api_test.dart, live_m2_test.dart chạy với API thật
+test/                       Kiểm thử đơn vị, giao diện (security_search_test.dart: mốc 3); live_api_test.dart,
+                            live_m2_test.dart, live_search_test.dart chạy với API thật
 assets/                     Logo (màn hình đăng nhập) và ảnh nguồn của biểu tượng ứng dụng
 API-NEEDS.md                Những thay đổi API cần cho thông báo đẩy và mốc 2
 ```

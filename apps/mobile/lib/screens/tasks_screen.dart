@@ -111,7 +111,15 @@ class _TasksScreenState extends State<TasksScreen> {
                 style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.82)),
               ),
           ]),
-          actions: const [Padding(padding: EdgeInsets.only(right: 14), child: LogoBadge(size: 42))],
+          actions: [
+            IconButton(
+              key: const Key('open-search'),
+              tooltip: 'Tìm nhiệm vụ',
+              icon: const Icon(Icons.search, color: Colors.white, size: 26),
+              onPressed: () => context.push('/search'),
+            ),
+            const Padding(padding: EdgeInsets.only(left: 4, right: 14), child: LogoBadge(size: 42)),
+          ],
           bottom: TabBar(
             isScrollable: true,
             tabAlignment: TabAlignment.start,
