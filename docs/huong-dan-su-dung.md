@@ -13,7 +13,8 @@ Mục lục:
 4. [Lãnh đạo: giao việc, duyệt, theo dõi, thống kê](#4-lãnh-đạo)
 5. [Quản trị hệ thống](#5-quản-trị-hệ-thống)
 6. [Nhắc việc trên điện thoại](#6-nhắc-việc-trên-điện-thoại)
-7. [Câu hỏi thường gặp](#7-câu-hỏi-thường-gặp)
+7. [Trò chuyện, ảnh đại diện](#7-trò-chuyện-ảnh-đại-diện)
+8. [Câu hỏi thường gặp](#8-câu-hỏi-thường-gặp)
 
 ---
 
@@ -133,7 +134,8 @@ Tài khoản quản trị **không xem được nội dung nhiệm vụ**; chỉ
 - **Sửa**: đổi thông tin, **chuyển đơn vị**, vai trò. Đổi vai trò thì người dùng phải đăng nhập lại.
 - **Khóa** (tắt công tắc Hoạt động) khi cán bộ chuyển công tác, nghỉ: đăng xuất ngay mọi nơi.
 - Nút **…**: **đặt lại mật khẩu**; **mở khóa đăng nhập** (bị khóa do nhập sai nhiều lần); **đặt lại xác thực hai lớp**
-  khi cán bộ mất, đổi điện thoại. Chỉ làm sau khi **xác minh trực tiếp đúng người**.
+  khi cán bộ mất, đổi điện thoại. Chỉ làm sau khi **xác minh trực tiếp đúng người**; **gỡ ảnh đại diện** không phù hợp.
+- Tài khoản quản trị **không tham gia, không đọc được trò chuyện**.
 
 **Nhật ký hệ thống**: tra cứu theo người dùng, khoảng ngày, kết quả (thành công / lỗi, bị từ chối), hành động. Nhật ký
 không sửa, xóa được. Nên xem định kỳ các lần **đăng nhập sai**, **bị khóa**.
@@ -163,7 +165,27 @@ Mở ứng dụng là thấy ngay mục **Cần xử lý**; nhận việc, cập
 
 Đăng xuất thì thiết bị đó thôi nhận nhắc việc của tài khoản.
 
-## 7. Câu hỏi thường gặp
+## 7. Trò chuyện, ảnh đại diện
+
+**Không trao đổi thông tin thuộc bí mật nhà nước qua trò chuyện.** Trò chuyện dùng để trao đổi nhanh công việc thường
+ngày, thay cho nhóm Zalo, Messenger; dữ liệu nằm trên máy chủ của Nhà trường.
+
+- Mở mục **Trò chuyện** trên menu (số đỏ là số tin chưa đọc). Bấm **Mới**:
+  - **Nhắn riêng**: gõ tên để tìm người (mọi cán bộ trong trường).
+  - **Tạo nhóm**: đặt tên, chọn thành viên. Người tạo là **quản lý nhóm**: đổi tên, thêm, bớt người. Thành viên tự
+    **rời nhóm** được. Quản lý rời nhóm thì người vào nhóm sớm nhất làm quản lý.
+  - **Nhóm theo đơn vị** (Ban Giám hiệu cho mọi đơn vị; chỉ huy đơn vị cho đơn vị mình và trực thuộc): mỗi đơn vị một
+    nhóm, **thành viên tự cập nhật** theo đơn vị của tài khoản. Quản trị chuyển cán bộ sang đơn vị khác, khóa tài
+    khoản thì cán bộ tự ra khỏi nhóm cũ. Có thể chọn gồm cả cán bộ các đơn vị trực thuộc.
+- Gõ tin, **Enter** để gửi, **Shift + Enter** để xuống dòng. Tin mới hiện ngay, không cần tải lại trang.
+- **Thu hồi**: rê chuột vào tin của mình (trên điện thoại: bấm giữ), chọn thu hồi; chỉ thu hồi được trong **24 giờ**.
+- Bấm tên cuộc trò chuyện để xem thành viên, đổi tên, **tắt thông báo** cuộc trò chuyện đó.
+- Thông báo đẩy về điện thoại chỉ có câu chung **"Đồng chí có tin nhắn mới"**, không có nội dung, tên người gửi.
+
+**Ảnh đại diện**: vào **Tài khoản & nhắc việc** → **Ảnh đại diện** → **Chọn ảnh** (JPEG, PNG). Ảnh được cắt vuông, thu
+nhỏ ngay trên máy; hệ thống xóa thông tin kèm theo ảnh (vị trí chụp, loại máy). Nên dùng ảnh chân dung, rõ mặt.
+
+## 8. Câu hỏi thường gặp
 
 **Quên mật khẩu, bị khóa tài khoản?** Báo bộ phận quản trị để đặt lại mật khẩu hoặc mở khóa (phải xác minh đúng người).
 

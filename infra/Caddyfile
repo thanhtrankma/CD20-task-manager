@@ -6,11 +6,19 @@
 {$SITE_ADDRESS} {
 	{$CADDY_TLS}
 
-	encode zstd gzip
+	# Luồng trò chuyện (Server-Sent Events) không nén, để tin nhắn tới ngay, không bị giữ lại chờ đủ khối nén.
+	@compressible not path /api/chat/stream
+	encode @compressible zstd gzip
 
 	# Lớn hơn giới hạn tệp của API (MAX_UPLOAD_MB) một chút
 	request_body {
 		max_size 25MB
+	}
+
+	handle /api/chat/stream {
+		reverse_proxy api:3000 {
+			flush_interval -1
+		}
 	}
 
 	handle /api/* {

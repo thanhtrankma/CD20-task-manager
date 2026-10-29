@@ -4,6 +4,7 @@ import {
   ClipboardList,
   LayoutDashboard,
   LogOut,
+  MessagesSquare,
   Plus,
   ScrollText,
   ShieldAlert,
@@ -15,9 +16,11 @@ import {
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { Avatar } from '../components/Avatar';
 import { ORG } from '../config/org';
 import { ROLE } from '../constants';
 import { CreateTaskModal } from '../pages/tasks/CreateTaskModal';
+import { useChatStream, useChatUnread } from '../pages/chat/stream';
 import { useTaskCounts } from '../pages/tasks/TasksPage';
 import { syncPush } from '../push';
 import { ShellContext } from './shell';
@@ -28,15 +31,6 @@ interface NavEntry {
   icon: LucideIcon;
   badge?: number;
 }
-
-const initials = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(-2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase();
 
 function NavGroup({ label, items, onNavigate }: { label: string; items: NavEntry[]; onNavigate: () => void }) {
   return (
@@ -73,6 +67,8 @@ export function MainLayout() {
   const isAdmin = me?.role === 'ADMIN';
   const canAssign = me?.role === 'LEADER' || me?.role === 'UNIT_HEAD';
   const counts = useTaskCounts(!!me && !isAdmin);
+  const chatUnread = useChatUnread(!!me && !isAdmin);
+  useChatStream(!!me && !isAdmin);
   if (!me) return null;
 
   const close = () => setSidebarOpen(false);
@@ -100,7 +96,7 @@ export function MainLayout() {
           </div>
 
           <div className="user-card">
-            <div className="avatar">{initials(me.fullName)}</div>
+            <Avatar name={me.fullName} url={me.avatarUrl} id={me.id} size={40} />
             <div style={{ minWidth: 0 }}>
               <div className="user-name">{me.fullName}</div>
               <div className="user-meta">
@@ -142,6 +138,7 @@ export function MainLayout() {
                 items={[
                   { to: '/', label: 'Tổng quan', icon: LayoutDashboard },
                   { to: '/tasks', label: 'Việc của tôi', icon: ClipboardList, badge: counts.data?.todo },
+                  { to: '/chat', label: 'Trò chuyện', icon: MessagesSquare, badge: chatUnread.data?.count },
                   ...(canAssign ? [{ to: '/reports', label: 'Thống kê', icon: ChartColumn }] : []),
                 ]}
               />

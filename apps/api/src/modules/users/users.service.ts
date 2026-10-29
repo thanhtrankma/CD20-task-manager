@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { randomInt } from 'node:crypto';
 import { Prisma } from '../../generated/prisma/client';
+import { avatarUrl } from '../../common/avatar-url';
 import { assertStrongPassword, hashPassword } from '../../common/password';
 import type { AuthUser } from '../../common/types';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -22,6 +23,7 @@ const SAFE_FIELDS = {
   totpEnabled: true,
   lastLoginAt: true,
   lockedUntil: true,
+  avatarFile: true,
   unit: { select: { id: true, name: true } },
 } satisfies Prisma.UserSelect;
 
@@ -37,7 +39,7 @@ export class UsersService {
   async list(auth: AuthUser, query: ListUsersQuery) {
     const scope =
       auth.role === 'UNIT_HEAD' ? { unitId: { in: await this.units.descendantIds(auth.unitId) } } : {};
-    return this.prisma.user.findMany({
+    const users = await this.prisma.user.findMany({
       where: {
         AND: [
           scope,
@@ -55,6 +57,7 @@ export class UsersService {
       select: SAFE_FIELDS,
       orderBy: { fullName: 'asc' },
     });
+    return users.map(({ avatarFile, ...u }) => ({ ...u, avatarUrl: avatarUrl({ id: u.id, avatarFile }) }));
   }
 
   async create(dto: CreateUserDto) {

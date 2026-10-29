@@ -16,6 +16,8 @@ export interface Me {
   twoFactorMandatory: boolean;
   /** Vai trò bắt buộc xác thực hai lớp nhưng chưa bật: phải bật trước khi dùng. */
   twoFactorRequired: boolean;
+  /** Đường dẫn ảnh đại diện (có ?v= theo ảnh), null: chưa có ảnh. */
+  avatarUrl: string | null;
 }
 
 export interface Unit {
@@ -41,6 +43,7 @@ export interface UserRow {
   /** Bị khóa tạm do nhập sai mật khẩu nhiều lần (đến thời điểm này). */
   lockedUntil: string | null;
   unit: { id: number; name: string };
+  avatarUrl: string | null;
 }
 
 interface Person {
@@ -205,4 +208,50 @@ export interface Report {
   byUnit: (ReportCounts & { unitId: number; name: string })[];
   byPerson: (ReportCounts & { userId: number; fullName: string; unitName: string; active: number })[];
   byMonth: (ReportCounts & { month: string })[];
+}
+
+// ---------- Trò chuyện ----------
+
+export type ConversationType = 'DIRECT' | 'GROUP' | 'UNIT';
+
+export interface UserBrief {
+  id: number;
+  fullName: string;
+  rank: string | null;
+  position: string | null;
+  unit: { id: number; name: string };
+  avatarUrl: string | null;
+}
+
+export interface ChatMessage {
+  id: number;
+  conversationId: number;
+  kind: 'TEXT' | 'SYSTEM';
+  /** Rỗng khi tin đã bị thu hồi. */
+  body: string;
+  sender: { id: number; fullName: string; avatarUrl: string | null } | null;
+  createdAt: string;
+  deletedAt: string | null;
+}
+
+export interface ConversationItem {
+  id: number;
+  type: ConversationType;
+  name: string;
+  unitId: number | null;
+  includeSubunits: boolean;
+  memberCount: number;
+  peer: UserBrief | null;
+  lastMessage: ChatMessage | null;
+  unread: number;
+  muted: boolean;
+  lastMessageAt: string | null;
+  createdAt: string;
+}
+
+export interface ConversationDetail extends ConversationItem {
+  members: (UserBrief & { role: 'OWNER' | 'MEMBER'; lastReadMessageId: number })[];
+  canManage: boolean;
+  canAddMembers: boolean;
+  canLeave: boolean;
 }

@@ -150,4 +150,9 @@ Nguyên tắc an toàn:
 | GET | `/api/notifications`, `/api/dashboard/summary`, `/api/audit-logs` | Thông báo, thống kê, nhật ký |
 | GET/POST | `/api/notifications/settings` · `push/subscribe` · `push/unsubscribe` · `test` | Kênh nhắc việc, đăng ký thiết bị, gửi thử |
 | PATCH | `/api/auth/profile` | Người dùng tự cập nhật thư nhận nhắc việc |
+| POST/DELETE | `/api/users/me/avatar` · GET `/api/users/:id/avatar` | Ảnh đại diện (JPEG, PNG ≤ 2 MB, xóa siêu dữ liệu); quản trị gỡ: DELETE `/api/users/:id/avatar` |
+| GET | `/api/chat/conversations` · `/unread` · `/directory` | Trò chuyện: danh sách, số chưa đọc, danh bạ (quản trị không dùng) |
+| POST | `/api/chat/direct` · `/groups` · `/unit-groups` | Nhắn riêng, nhóm tự tạo, nhóm theo đơn vị |
+| GET/POST | `/api/chat/conversations/:id/messages` · `/read` · `/mute` · `/members` | Tin nhắn, đã đọc, tắt thông báo, thành viên |
+| GET | `/api/chat/stream` | Server-Sent Events: tin mới, thu hồi, đổi nhóm (đầy đủ ở roadmap.md, giai đoạn G) |
 | GET | `/api/health` | Kiểm tra hoạt động |

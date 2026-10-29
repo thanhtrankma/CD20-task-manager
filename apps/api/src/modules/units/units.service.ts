@@ -41,6 +41,15 @@ export class UnitsService {
     return this.prisma.unit.update({ where: { id }, data: dto });
   }
 
+  /** Các đơn vị cấp trên của một đơn vị (không gồm chính nó), từ gần đến xa. */
+  async ancestorIds(unitId: number): Promise<number[]> {
+    const units = await this.prisma.unit.findMany({ select: { id: true, parentId: true } });
+    const parent = new Map(units.map((u) => [u.id, u.parentId]));
+    const result: number[] = [];
+    for (let id = parent.get(unitId); id != null && !result.includes(id); id = parent.get(id)) result.push(id);
+    return result;
+  }
+
   /** Mã đơn vị và toàn bộ đơn vị trực thuộc (đệ quy). Số đơn vị ít nên tải hết rồi duyệt trong bộ nhớ. */
   async descendantIds(unitId: number): Promise<number[]> {
     const units = await this.prisma.unit.findMany({ select: { id: true, parentId: true } });

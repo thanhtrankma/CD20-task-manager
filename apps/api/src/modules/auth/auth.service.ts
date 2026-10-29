@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { avatarUrl } from '../../common/avatar-url';
 import type { User } from '../../generated/prisma/client';
 import { generateSecret, generateURI, verify } from 'otplib';
 import * as QRCode from 'qrcode';
@@ -38,6 +39,7 @@ export const toPublicUser = (u: User) => ({
   totpEnabled: u.totpEnabled,
   twoFactorMandatory: twoFactorMandatory(u.role),
   twoFactorRequired: twoFactorMissing(u),
+  avatarUrl: avatarUrl(u),
 });
 
 @Injectable()

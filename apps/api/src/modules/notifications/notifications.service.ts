@@ -48,6 +48,17 @@ export class NotificationsService {
     );
   }
 
+  /** Chỉ thông báo đẩy (trình duyệt, điện thoại), không gửi thư: dùng cho tin nhắn trò chuyện. */
+  deliverPush(userIds: number[], message: DeliveryMessage) {
+    if (!userIds.length) return;
+    void Promise.allSettled([this.push.sendToUsers(userIds, message), this.mobile.sendToUsers(userIds, message)]).then(
+      (results) =>
+        results
+          .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+          .forEach((r) => this.logger.error('Gửi thông báo tin nhắn thất bại', r.reason)),
+    );
+  }
+
   listMine(userId: number) {
     return this.prisma.notification.findMany({
       where: { userId },

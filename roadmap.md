@@ -25,6 +25,7 @@ Ký hiệu: `[x]` đã xong · `[ ]` chưa làm · `[~]` đang làm · 🧾 vi�
 | D | 9 – 10 | Thí điểm với ~20 đầu mối (trưởng cơ sở, đơn vị) | Báo cáo kết quả thí điểm |
 | E | 11 – 16 (bắt đầu sớm) | Ứng dụng di động Android, iOS (Flutter) | Ứng dụng phát hành riêng tư, nhận thông báo đẩy |
 | F | 17 – 18 | Triển khai toàn trường | Vận hành chính thức |
+| G | Bổ sung | Trò chuyện nội bộ (nhắn riêng, nhóm tự tạo, nhóm theo đơn vị), ảnh đại diện | Trao đổi nhanh trong hệ thống |
 
 Thí điểm (D) dùng đúng nhóm 20 đầu mối mà phương án thuê ngoài dự kiến, nên Ban Giám hiệu so sánh được trực tiếp.
 
@@ -180,6 +181,56 @@ Mục tiêu: cán bộ cài ứng dụng của Nhà trường, nhận nhắc vi�
 - [ ] F2. Nhập toàn bộ đơn vị, tài khoản từ Excel
 - [ ] 🧾 F3. Tập huấn theo đơn vị; hỗ trợ cài ứng dụng
 - [ ] 🧾 F4. Vận hành chính thức; báo cáo Ban Giám hiệu sau 1 tháng
+
+## Giai đoạn G: Trò chuyện nội bộ, ảnh đại diện (bổ sung)
+
+Mục tiêu: trao đổi nhanh ngay trong hệ thống thay cho nhóm Zalo, Messenger; dữ liệu nằm trên máy chủ của Nhà trường.
+
+Nguyên tắc riêng:
+- Màn trò chuyện luôn nhắc **không trao đổi thông tin bí mật nhà nước** (như toàn hệ thống).
+- Tài khoản quản trị (ADMIN) **không tham gia, không đọc** được trò chuyện.
+- Thông báo đẩy chỉ có câu chung "Đồng chí có tin nhắn mới", không có nội dung, tên người gửi; mỗi cuộc trò chuyện
+  tối đa 1 thông báo đẩy / 2 phút / người; tắt thông báo được theo từng cuộc trò chuyện.
+- Nhật ký ghi ai gửi, lúc nào (không ghi nội dung); người gửi thu hồi được tin trong 24 giờ.
+- Phiên 1 chỉ gửi chữ; gửi ảnh, tệp trong trò chuyện làm sau nếu cần.
+
+- [x] **G1. Ảnh đại diện**: tự đổi, xóa ảnh (JPEG, PNG ≤ 2 MB, cắt vuông, thu nhỏ ở máy người dùng); máy chủ kiểm tra chữ
+      ký tệp, kích thước và **xóa siêu dữ liệu** (EXIF: vị trí GPS, loại máy); quản trị gỡ được ảnh không phù hợp.
+      Ảnh chỉ xem được khi đã đăng nhập; hiện ở menu, trò chuyện, danh sách người
+- [x] **G2. Nhắn riêng** (1 – 1) với bất kỳ cán bộ nào trong trường (danh bạ: tên, cấp bậc, chức vụ, đơn vị)
+- [x] **G3. Nhóm tự tạo**: ai cũng tạo được (tên + thành viên); người tạo đổi tên, thêm, bớt người; thành viên tự rời nhóm
+- [x] **G4. Nhóm theo đơn vị**: Ban Giám hiệu tạo cho mọi đơn vị, chỉ huy đơn vị tạo cho đơn vị mình và trực thuộc; mỗi
+      đơn vị một nhóm; **thành viên tự cập nhật** theo đơn vị của tài khoản (chuyển đơn vị, khóa tài khoản là tự ra khỏi
+      nhóm), tùy chọn gồm cả đơn vị trực thuộc
+- [x] **G5. Thời gian thực**: tin mới hiện ngay (Server-Sent Events, kiểm tra lại phiên mỗi phút), số tin chưa đọc trên
+      menu, đã đọc đến đâu, thông báo đẩy về điện thoại
+- [x] **G6. Web**: màn "Trò chuyện"; đổi ảnh đại diện ở "Tài khoản"
+  (xong 29/10/2026: 16 kiểm thử API mới, tổng 128; Caddy không nén, không đệm luồng `/api/chat/stream`)
+- [ ] **G7. Ứng dụng di động**: tab "Trò chuyện", tạo nhóm, đổi ảnh đại diện (chụp hoặc chọn ảnh), mở đúng cuộc trò chuyện
+      khi bấm thông báo
+
+### Hợp đồng API (bản web và ứng dụng dùng chung)
+
+| Phương thức | Đường dẫn | Ghi chú |
+|---|---|---|
+| POST, DELETE | `/api/users/me/avatar` | Tải lên (multipart, trường `file`), xóa ảnh của mình |
+| DELETE | `/api/users/:id/avatar` | Quản trị gỡ ảnh |
+| GET | `/api/users/:id/avatar?v=` | Ảnh (cần đăng nhập). `avatarUrl` có sẵn trong `/auth/me`, danh bạ, thành viên |
+| GET | `/api/chat/directory?q=&unitId=` | Danh bạ: tài khoản đang hoạt động, trừ quản trị và chính mình, tối đa 50 |
+| GET | `/api/chat/conversations` | Danh sách: loại, tên, tin cuối, số chưa đọc, đã tắt thông báo; mới nhất trước |
+| GET | `/api/chat/unread` | `{ count }` tổng tin chưa đọc (số trên menu) |
+| POST | `/api/chat/direct` | `{ userId }` → mở (hoặc tạo) cuộc nhắn riêng |
+| POST | `/api/chat/groups` | `{ name, memberIds }` nhóm tự tạo |
+| POST | `/api/chat/unit-groups` | `{ unitId, includeSubunits }` nhóm theo đơn vị |
+| GET, PATCH | `/api/chat/conversations/:id` | Chi tiết kèm thành viên, quyền quản lý; đổi `{ name, includeSubunits }` |
+| POST | `/api/chat/conversations/:id/members` | `{ userIds }` thêm người (nhóm tự tạo) |
+| DELETE | `/api/chat/conversations/:id/members/:userId` | Bớt người; `userId` là mình = rời nhóm |
+| GET | `/api/chat/conversations/:id/messages?before=&limit=` | Tin nhắn, mới nhất trước, tối đa 50 mỗi lần |
+| POST | `/api/chat/conversations/:id/messages` | `{ body }` (1 – 4000 ký tự) |
+| POST | `/api/chat/conversations/:id/read` | `{ messageId }` đã đọc đến tin này |
+| POST | `/api/chat/conversations/:id/mute` | `{ muted }` tắt, bật thông báo |
+| DELETE | `/api/chat/messages/:id` | Thu hồi tin của mình (trong 24 giờ) |
+| GET | `/api/chat/stream` | Server-Sent Events: `message`, `message_deleted`, `conversation`, `read` |
 
 ## Mở rộng (sau thí điểm, theo góp ý của người dùng)
 

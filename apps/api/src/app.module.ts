@@ -7,6 +7,7 @@ import { AuditInterceptor } from './common/audit.interceptor';
 import { env } from './env';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { ChatModule } from './modules/chat/chat.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { FilesModule } from './modules/files/files.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -30,6 +31,7 @@ import { PrismaModule } from './prisma/prisma.module';
     SubmissionsModule,
     FilesModule,
     DashboardModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [

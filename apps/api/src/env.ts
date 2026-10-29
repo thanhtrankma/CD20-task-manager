@@ -35,6 +35,10 @@ export const env = {
   /** Số request tối đa mỗi phút mỗi IP cho toàn bộ API. */
   rateLimit: Number(process.env.RATE_LIMIT ?? 120),
   port: Number(process.env.PORT ?? 3000),
+  /** Số tin trò chuyện tối đa mỗi phút mỗi IP. */
+  chatMessageRateLimit: Number(process.env.CHAT_MESSAGE_RATE_LIMIT ?? 30),
+  /** Chu kỳ kiểm tra lại phiên của luồng trò chuyện (ms); chỉ đổi khi kiểm thử. */
+  chatSessionCheckMs: Number(process.env.CHAT_SESSION_CHECK_MS ?? 60_000),
   timezone: process.env.TZ ?? 'Asia/Ho_Chi_Minh',
   /** Web Push. Thiếu khóa thì tắt thông báo đẩy. Tạo khóa: npx web-push generate-vapid-keys */
   vapid: {

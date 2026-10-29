@@ -7,6 +7,7 @@ import { api } from '../../api/client';
 import type { Role, Unit, UserRow } from '../../api/types';
 import { DATETIME_FORMAT, ROLE } from '../../constants';
 import { buildUnitTree } from '../../utils/units';
+import { Avatar } from '../../components/Avatar';
 import { Pill } from '../../components/Pill';
 import { PageHeader, Panel } from '../../layouts/shell';
 import { ImportUsersModal } from './ImportUsersModal';
@@ -123,7 +124,16 @@ export function UsersPage() {
             dataSource={users.data}
             scroll={{ x: 1100 }}
             columns={[
-              { title: 'Họ tên', dataIndex: 'fullName' },
+              {
+                title: 'Họ tên',
+                dataIndex: 'fullName',
+                render: (name: string, u) => (
+                  <Space size={8}>
+                    <Avatar name={name} url={u.avatarUrl} id={u.id} size={28} />
+                    {name}
+                  </Space>
+                ),
+              },
               { title: 'Tên đăng nhập', dataIndex: 'username', width: 140 },
               { title: 'Thư nhắc việc', dataIndex: 'email', width: 200, render: (e: string | null) => e ?? '—' },
               { title: 'Đơn vị', width: 200, render: (_, u) => u.unit.name },
@@ -190,6 +200,18 @@ export function UsersPage() {
                                 'Dùng khi cán bộ mất hoặc đổi điện thoại. Mọi phiên đăng nhập bị thu hồi; lần đăng nhập sau phải bật lại. Chỉ làm khi đã xác minh trực tiếp đúng người.',
                                 () => api.post(`/users/${u.id}/reset-2fa`),
                                 'Đã đặt lại xác thực hai lớp',
+                              ),
+                          },
+                          {
+                            key: 'avatar',
+                            label: 'Gỡ ảnh đại diện',
+                            disabled: !u.avatarUrl,
+                            onClick: () =>
+                              confirmAction(
+                                `Gỡ ảnh đại diện của ${u.fullName}?`,
+                                'Dùng khi ảnh không phù hợp. Cán bộ có thể chọn ảnh khác.',
+                                () => api.del(`/users/${u.id}/avatar`),
+                                'Đã gỡ ảnh đại diện',
                               ),
                           },
                         ],

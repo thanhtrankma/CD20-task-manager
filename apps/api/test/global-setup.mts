@@ -124,6 +124,8 @@ export async function globalSetup() {
     UPLOAD_DIR: join(tmp, 'uploads'),
     LOGIN_RATE_LIMIT: '1000',
     RATE_LIMIT: '100000',
+    CHAT_MESSAGE_RATE_LIMIT: '100000',
+    CHAT_SESSION_CHECK_MS: '500',
     VAPID_PUBLIC_KEY: vapid.publicKey,
     VAPID_PRIVATE_KEY: vapid.privateKey,
     VAPID_SUBJECT: 'mailto:test@giaoviec.test',

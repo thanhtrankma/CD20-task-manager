@@ -8,6 +8,7 @@ import { AuditPage } from './pages/admin/AuditPage';
 import { UnitsPage } from './pages/admin/UnitsPage';
 import { UsersPage } from './pages/admin/UsersPage';
 import { ChangePasswordPage } from './pages/ChangePasswordPage';
+import { ChatPage } from './pages/chat/ChatPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { LoginPage } from './pages/LoginPage';
 import { ProfilePage } from './pages/ProfilePage';
@@ -50,6 +51,8 @@ export function App() {
         />
         <Route path="tasks" element={<RequireRole roles={WORKERS}><TasksPage /></RequireRole>} />
         <Route path="tasks/:id" element={<RequireRole roles={WORKERS}><TaskDetailPage /></RequireRole>} />
+        <Route path="chat" element={<RequireRole roles={WORKERS}><ChatPage /></RequireRole>} />
+        <Route path="chat/:id" element={<RequireRole roles={WORKERS}><ChatPage /></RequireRole>} />
         <Route path="reports" element={<RequireRole roles={['LEADER', 'UNIT_HEAD']}><ReportsPage /></RequireRole>} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="admin/units" element={<RequireRole roles={['ADMIN']}><UnitsPage /></RequireRole>} />

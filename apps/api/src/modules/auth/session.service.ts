@@ -15,6 +15,9 @@ export const SESSION_COOKIE = 'tm_session';
 @Injectable()
 export class SessionService {
   private readonly ttlMs = env.sessionTtlHours * 3_600_000;
+  /** Báo cho các kết nối giữ lâu (luồng trò chuyện) đóng ngay khi phiên bị hủy. */
+  private readonly revokedListeners: ((e: { sessionId?: string; userId?: number; exceptSessionId?: string }) => void)[] =
+    [];
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -50,14 +53,31 @@ export class SessionService {
     };
   }
 
-  destroy(sessionId: string) {
-    return this.prisma.session.deleteMany({ where: { id: sessionId } });
+  /** Phiên còn hiệu lực, không gia hạn (kết nối giữ lâu như luồng trò chuyện không được kéo dài phiên). */
+  async isAlive(sessionId: string) {
+    const s = await this.prisma.session.findUnique({
+      where: { id: sessionId },
+      select: { expiresAt: true, user: { select: { isActive: true } } },
+    });
+    return !!s && s.expiresAt > new Date() && s.user.isActive;
   }
 
-  destroyAllForUser(userId: number, exceptSessionId?: string) {
-    return this.prisma.session.deleteMany({
+  onRevoked(listener: (e: { sessionId?: string; userId?: number; exceptSessionId?: string }) => void) {
+    this.revokedListeners.push(listener);
+  }
+
+  async destroy(sessionId: string) {
+    const result = await this.prisma.session.deleteMany({ where: { id: sessionId } });
+    this.revokedListeners.forEach((l) => l({ sessionId }));
+    return result;
+  }
+
+  async destroyAllForUser(userId: number, exceptSessionId?: string) {
+    const result = await this.prisma.session.deleteMany({
       where: { userId, id: exceptSessionId ? { not: exceptSessionId } : undefined },
     });
+    this.revokedListeners.forEach((l) => l({ userId, exceptSessionId }));
+    return result;
   }
 
   /** Cookie phiên (không đặt maxAge): đóng trình duyệt là mất; hết hạn do máy chủ quyết định. */
