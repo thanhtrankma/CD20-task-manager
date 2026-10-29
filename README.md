@@ -132,6 +132,7 @@ Nguyên tắc an toàn:
 | GET/POST/PATCH | `/api/units`, `/api/users` | Đơn vị, tài khoản (ADMIN) |
 | GET/POST | `/api/tasks` | Danh sách (lọc, phân trang), giao việc |
 | GET | `/api/tasks?view=assigned\|created\|review` | Mục Được giao, Đã giao, Chờ duyệt của "Việc của tôi" (bỏ trống: mọi việc trong phạm vi) |
+| GET | `/api/tasks?q=&status=&priority=&unitId=&createdById=&dueFrom=&dueTo=&overdue=1&sort=due\|newest` | Lọc nâng cao: tìm theo tên, căn cứ; đơn vị nhận gồm cả đơn vị trực thuộc; luôn trong phạm vi được xem |
 | GET | `/api/tasks/todo` · `/api/tasks/counts` | Mục Cần xử lý (kèm lý do: quá hạn, hôm nay, chờ duyệt...), số đếm cho menu |
 | POST | `/api/tasks/:id/acknowledge` | Người được giao xác nhận đã nhận nhiệm vụ |
 | POST | `/api/tasks/:id/follow` · `/unfollow` · `/followers` | Tự theo dõi, bỏ theo dõi; người giao thêm người theo dõi |

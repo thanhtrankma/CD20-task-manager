@@ -33,7 +33,18 @@ export class TasksController {
         userId: user.id,
         action: 'EXPORT_TASKS',
         entity: 'Tasks',
-        detail: { view: query.view ?? 'all', status: query.status, q: query.q, total: result.total },
+        detail: {
+          view: query.view ?? 'all',
+          status: query.status,
+          q: query.q,
+          priority: query.priority,
+          unitId: query.unitId,
+          createdById: query.createdById,
+          dueFrom: query.dueFrom,
+          dueTo: query.dueTo,
+          overdue: query.overdue,
+          total: result.total,
+        },
         ...requestMeta(req),
       });
     }

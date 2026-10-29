@@ -111,7 +111,27 @@ export class TasksService {
       AND: [
         await this.access.visibleWhere(user),
         query.status ? { status: query.status } : {},
-        query.q ? { title: { contains: query.q, mode: 'insensitive' } } : {},
+        // Tìm theo tên nhiệm vụ hoặc căn cứ giao (số hiệu văn bản, kết luận giao ban).
+        query.q
+          ? {
+              OR: [
+                { title: { contains: query.q, mode: 'insensitive' } },
+                { source: { contains: query.q, mode: 'insensitive' } },
+              ],
+            }
+          : {},
+        query.priority ? { priority: query.priority } : {},
+        query.unitId ? await this.access.receivingUnitWhere(query.unitId) : {},
+        query.createdById ? { createdById: query.createdById } : {},
+        query.dueFrom || query.dueTo
+          ? {
+              dueDate: {
+                gte: query.dueFrom ? new Date(query.dueFrom) : undefined,
+                lte: query.dueTo ? new Date(query.dueTo) : undefined,
+              },
+            }
+          : {},
+        query.overdue ? { status: { in: ACTIVE_STATUSES }, dueDate: { lt: new Date() } } : {},
         query.view === 'assigned' ? await this.access.workWhere(user) : {},
         query.view === 'created' ? { createdById: user.id } : {},
         query.view === 'review' ? this.reviewWhere(user) : {},
@@ -122,7 +142,7 @@ export class TasksService {
       this.prisma.task.findMany({
         where,
         include: LIST_INCLUDE,
-        orderBy: [{ dueDate: 'asc' }, { id: 'desc' }],
+        orderBy: query.sort === 'newest' ? [{ createdAt: 'desc' }, { id: 'desc' }] : [{ dueDate: 'asc' }, { id: 'desc' }],
         skip: (query.page - 1) * query.pageSize,
         take: query.pageSize,
       }),

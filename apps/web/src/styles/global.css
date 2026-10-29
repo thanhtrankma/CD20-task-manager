@@ -320,3 +320,4 @@ a.stat:hover { border-color: #bfdbfe; box-shadow: 0 20px 40px -24px rgba(37, 99,
 .scroll-x { max-width: 100%; overflow-x: auto; }
 .panel-legend { padding: 12px 20px 4px; }
 .month-bars { margin-top: 14px; }
+.filter-advanced { padding-top: 0; background: var(--c-border-soft); border-bottom: 1px solid var(--c-border); padding-bottom: 12px; padding-top: 12px; }

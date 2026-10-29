@@ -1,16 +1,34 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Grid, Input, Pagination, Popconfirm, Progress, Select, Skeleton, Space, Table, Tabs } from 'antd';
-import dayjs from 'dayjs';
-import { Download, Plus, Search } from 'lucide-react';
+import {
+  App,
+  Badge,
+  Button,
+  Checkbox,
+  DatePicker,
+  Grid,
+  Input,
+  Pagination,
+  Popconfirm,
+  Progress,
+  Select,
+  Skeleton,
+  Space,
+  Table,
+  Tabs,
+  TreeSelect,
+} from 'antd';
+import dayjs, { type Dayjs } from 'dayjs';
+import { Download, Plus, Search, SlidersHorizontal } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api, toQuery } from '../../api/client';
-import type { Assignee, Paged, TaskCounts, TaskRow, TaskStatus, TodoItem, TodoReason } from '../../api/types';
+import type { Assignee, Paged, Priority, TaskCounts, TaskRow, TaskStatus, TodoItem, TodoReason, Unit, UserRow } from '../../api/types';
 import { useAuth } from '../../auth/AuthContext';
 import { ItemList, ItemRow } from '../../components/ItemList';
 import { DueTag, PriorityPill, StatusPill } from '../../components/Pill';
 import { DATE_FORMAT, DATETIME_FORMAT, PRIORITY, STATUS, TODO_REASON } from '../../constants';
 import { downloadXlsx, headerRow } from '../../utils/excel';
+import { buildUnitTree } from '../../utils/units';
 import { PageHeader, Panel, useShell } from '../../layouts/shell';
 
 export const assigneeLabel = (a: Pick<Assignee, 'unit' | 'user'>) => a.unit?.name ?? a.user?.fullName ?? '';
@@ -160,13 +178,46 @@ function resultOf(t: TaskRow & { completedAt?: string | null }) {
 }
 
 /** Xuất toàn bộ danh sách theo mục, bộ lọc đang chọn (không chỉ trang đang xem) ra Excel, phục vụ giao ban. */
-async function exportTasks(view: Exclude<View, 'todo'>, status?: TaskStatus, q?: string) {
+/** Bộ lọc nâng cao của danh sách (gửi lên máy chủ cùng mục, trạng thái, từ khóa). */
+interface Filters {
+  priority?: Priority;
+  unitId?: number;
+  createdById?: number;
+  due?: [Dayjs, Dayjs] | null;
+  overdue?: boolean;
+  sort?: 'due' | 'newest';
+}
+
+const filterQuery = (f: Filters) => ({
+  priority: f.priority,
+  unitId: f.unitId,
+  createdById: f.createdById,
+  dueFrom: f.due?.[0].startOf('day').toISOString(),
+  dueTo: f.due?.[1].endOf('day').toISOString(),
+  overdue: f.overdue ? '1' : undefined,
+  sort: f.sort === 'newest' ? 'newest' : undefined,
+});
+
+/** Số bộ lọc nâng cao đang bật (hiện trên nút "Bộ lọc"). */
+const activeFilters = (f: Filters) =>
+  [f.priority, f.unitId, f.createdById, f.due, f.overdue].filter((v) => v !== undefined && v !== null && v !== false)
+    .length;
+
+async function exportTasks(view: Exclude<View, 'todo'>, status?: TaskStatus, q?: string, filters: Filters = {}) {
   type Row = TaskRow & { source?: string | null; completedAt?: string | null };
   const items: Row[] = [];
   for (let page = 1; page <= 20; page++) {
     const r = await api.get<Paged<Row>>(
       // export=1: máy chủ ghi nhật ký lượt xuất.
-      `/tasks${toQuery({ view: view === 'all' ? undefined : view, status, q, page, pageSize: 100, export: '1' })}`,
+      `/tasks${toQuery({
+        view: view === 'all' ? undefined : view,
+        status,
+        q,
+        ...filterQuery(filters),
+        page,
+        pageSize: 100,
+        export: '1',
+      })}`,
     );
     items.push(...r.items);
     if (items.length >= r.total) break;
@@ -210,14 +261,32 @@ function TaskList({
   setParams: ReturnType<typeof useSearchParams>[1];
 }) {
   const { message } = App.useApp();
+  const { me } = useAuth();
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
   const [exporting, setExporting] = useState(false);
+  const [filters, setFilters] = useState<Filters>({});
+  const [showFilters, setShowFilters] = useState(false);
   const { data, isLoading } = useQuery({
-    queryKey: ['tasks', 'list', { view, status, q, page }],
+    queryKey: ['tasks', 'list', { view, status, q, page, filters: filterQuery(filters) }],
     queryFn: () =>
-      api.get<Paged<TaskRow>>(`/tasks${toQuery({ view: view === 'all' ? undefined : view, status, q, page })}`),
+      api.get<Paged<TaskRow>>(
+        `/tasks${toQuery({ view: view === 'all' ? undefined : view, status, q, page, ...filterQuery(filters) })}`,
+      ),
   });
+  // Danh sách đơn vị, người giao cho bộ lọc: chỉ tải khi mở bộ lọc. Cán bộ không xem được danh sách tài khoản.
+  const canListUsers = me?.role === 'LEADER' || me?.role === 'UNIT_HEAD';
+  const units = useQuery({ queryKey: ['units'], queryFn: () => api.get<Unit[]>('/units'), enabled: showFilters });
+  const users = useQuery({
+    queryKey: ['users'],
+    queryFn: () => api.get<UserRow[]>('/users'),
+    enabled: showFilters && canListUsers,
+  });
+  const setFilter = (patch: Partial<Filters>) => {
+    setFilters((f) => ({ ...f, ...patch }));
+    setPage(1);
+  };
+  const nActive = activeFilters(filters);
   // Màn hình hẹp: hiển thị dạng thẻ thay cho bảng nhiều cột.
   const compact = !Grid.useBreakpoint().md;
 
@@ -236,7 +305,7 @@ function TaskList({
           options={Object.entries(STATUS).map(([value, s]) => ({ value, label: s.label }))}
         />
         <Input
-          placeholder="Tìm theo tên công việc"
+          placeholder="Tìm theo tên, căn cứ (số văn bản)"
           allowClear
           prefix={<Search size={15} color="#94a3b8" />}
           onPressEnter={(e) => {
@@ -248,6 +317,25 @@ function TaskList({
           }}
           style={{ width: 280, maxWidth: '100%' }}
         />
+        <Badge count={nActive} size="small" color="#b91c1c">
+          <Button
+            icon={<SlidersHorizontal size={15} />}
+            type={showFilters ? 'primary' : 'default'}
+            ghost={showFilters}
+            onClick={() => setShowFilters((v) => !v)}
+          >
+            Bộ lọc
+          </Button>
+        </Badge>
+        <Select
+          value={filters.sort ?? 'due'}
+          style={{ width: 170 }}
+          onChange={(sort) => setFilter({ sort })}
+          options={[
+            { value: 'due', label: 'Hạn gần nhất trước' },
+            { value: 'newest', label: 'Mới giao trước' },
+          ]}
+        />
         {compact && data && <span className="muted">{data.total} công việc</span>}
         <Button
           icon={<Download size={15} />}
@@ -257,7 +345,7 @@ function TaskList({
           onClick={async () => {
             setExporting(true);
             try {
-              message.success(`Đã xuất ${await exportTasks(view, status, q || undefined)} nhiệm vụ`);
+              message.success(`Đã xuất ${await exportTasks(view, status, q || undefined, filters)} nhiệm vụ`);
             } catch (e) {
               message.error((e as Error).message);
             } finally {
@@ -268,6 +356,60 @@ function TaskList({
           <span className="hide-xs">Xuất Excel</span>
         </Button>
       </div>
+
+      {showFilters && (
+        <div className="filter-bar filter-advanced">
+          <Select
+            allowClear
+            placeholder="Mức ưu tiên"
+            style={{ width: 150 }}
+            value={filters.priority}
+            onChange={(priority?: Priority) => setFilter({ priority })}
+            options={Object.entries(PRIORITY).map(([value, p]) => ({ value, label: p.label }))}
+          />
+          <TreeSelect
+            allowClear
+            showSearch
+            treeNodeFilterProp="title"
+            placeholder="Đơn vị nhận (gồm trực thuộc)"
+            style={{ width: 240 }}
+            value={filters.unitId}
+            onChange={(unitId?: number) => setFilter({ unitId })}
+            treeData={buildUnitTree(units.data ?? [], { includeInactive: true })}
+            treeDefaultExpandAll
+            loading={units.isLoading}
+          />
+          {canListUsers && (
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="Người giao"
+              style={{ width: 210 }}
+              value={filters.createdById}
+              onChange={(createdById?: number) => setFilter({ createdById })}
+              loading={users.isLoading}
+              options={(users.data ?? [])
+                .filter((u) => u.role === 'LEADER' || u.role === 'UNIT_HEAD')
+                .map((u) => ({ value: u.id, label: u.fullName }))}
+            />
+          )}
+          <DatePicker.RangePicker
+            format="DD/MM/YYYY"
+            placeholder={['Hạn từ ngày', 'đến ngày']}
+            value={filters.due ?? null}
+            onChange={(v) => setFilter({ due: v?.[0] && v[1] ? [v[0], v[1]] : null })}
+          />
+          <Checkbox checked={!!filters.overdue} onChange={(e) => setFilter({ overdue: e.target.checked || undefined })}>
+            Chỉ việc quá hạn
+          </Checkbox>
+          {nActive > 0 && (
+            <Button type="link" onClick={() => setFilter({ priority: undefined, unitId: undefined, createdById: undefined, due: null, overdue: undefined })}>
+              Xóa bộ lọc
+            </Button>
+          )}
+        </div>
+      )}
 
       {compact ? (
         <div style={{ padding: '0 14px 14px' }}>

@@ -62,6 +62,18 @@ export class ListTasksQuery {
    * review: chờ tôi duyệt. Bỏ trống: mọi công việc trong phạm vi được xem (đơn vị, toàn trường).
    */
   @IsOptional() @IsIn(TASK_VIEWS) view?: TaskView;
+  @IsOptional() @IsEnum(Priority) priority?: Priority;
+  /** Đơn vị nhận (gồm đơn vị trực thuộc, cán bộ thuộc các đơn vị đó). */
+  @IsOptional() @Type(() => Number) @IsInt() unitId?: number;
+  /** Người giao. */
+  @IsOptional() @Type(() => Number) @IsInt() createdById?: number;
+  /** Khoảng hạn hoàn thành. */
+  @IsOptional() @IsDateString() dueFrom?: string;
+  @IsOptional() @IsDateString() dueTo?: string;
+  /** Chỉ việc đang thực hiện đã quá hạn. */
+  @IsOptional() @IsIn(['1']) overdue?: '1';
+  /** due: hạn gần nhất trước (mặc định); newest: mới giao trước. */
+  @IsOptional() @IsIn(['due', 'newest']) sort?: 'due' | 'newest';
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) page = 1;
   @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(100) pageSize = 20;
   /** Đang xuất Excel: ghi nhật ký (giao diện gửi kèm khi tải trang đầu của lượt xuất). */

@@ -89,7 +89,7 @@ dụng khác: xem [docs/tham-khao-ung-dung-giao-viec.md](docs/tham-khao-ung-dung
       "Cần xử lý" là màn hình mặc định. Mục *Theo dõi* có từ B5
 - [x] **B2. Màu theo hạn** thống nhất; hạn hiển thị tương đối ("Còn 2 ngày", "Trễ 3 ngày"); số việc cần xử lý,
       chờ duyệt trên menu
-- [ ] **B3. Lọc, tìm kiếm**: theo trạng thái, mức ưu tiên, đơn vị nhận, người giao, khoảng hạn, quá hạn
+- [x] **B3. Lọc, tìm kiếm**: theo trạng thái, mức ưu tiên, đơn vị nhận (gồm trực thuộc), người giao, khoảng hạn, quá hạn; tìm theo tên và căn cứ; sắp xếp theo hạn hoặc mới giao. Xuất Excel theo đúng bộ lọc. Lọc không mở rộng phạm vi được xem
 
 ### Tuần 4: Vòng đời nhiệm vụ
 - [x] **B4. Xác nhận đã nhận nhiệm vụ** (ghi thời điểm; người giao thấy ai chưa nhận)
