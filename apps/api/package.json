@@ -18,7 +18,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "seed": "tsx src/cli/seed.ts",
-    "seed:demo": "tsx src/cli/seed.ts --demo"
+    "seed:demo": "tsx src/cli/seed.ts --demo --showcase",
+    "reset-password": "tsx src/cli/reset-password.ts"
   },
   "dependencies": {
     "@nestjs/common": "^12.2.0",

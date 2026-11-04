@@ -1,8 +1,7 @@
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
-import { randomInt } from 'node:crypto';
 import { Prisma } from '../../generated/prisma/client';
 import { avatarUrl } from '../../common/avatar-url';
-import { assertStrongPassword, hashPassword } from '../../common/password';
+import { assertStrongPassword, generateTemporaryPassword, hashPassword } from '../../common/password';
 import type { AuthUser } from '../../common/types';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SessionService } from '../auth/session.service';
@@ -172,18 +171,4 @@ export class UsersService {
       })),
     };
   }
-}
-
-/** Mật khẩu tạm 12 ký tự, bỏ các ký tự dễ nhầm (0/O, 1/l/I), luôn có chữ và số. */
-function generateTemporaryPassword() {
-  const letters = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
-  const digits = '23456789';
-  const all = letters + digits;
-  const chars = [letters[randomInt(letters.length)], digits[randomInt(digits.length)]];
-  while (chars.length < 12) chars.push(all[randomInt(all.length)]);
-  for (let i = chars.length - 1; i > 0; i--) {
-    const j = randomInt(i + 1);
-    [chars[i], chars[j]] = [chars[j], chars[i]];
-  }
-  return chars.join('');
 }

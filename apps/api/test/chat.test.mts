@@ -91,10 +91,10 @@ describe('Danh bạ, quyền tham gia', () => {
     const [me, adminId] = [await userId('canbo'), await userId('admin')];
     assert.ok(!list.some((u) => u.id === me || u.id === adminId));
     assert.ok(list.every((u) => 'avatarUrl' in u && u.unit?.name && !('username' in u)));
-    const found = (await s.get(`/chat/directory?q=${encodeURIComponent('lãnh đạo')}`)).body as any[];
+    const found = (await s.get(`/chat/directory?q=${encodeURIComponent('văn thành')}`)).body as any[];
     const leaderId = await userId('lanhdao');
     assert.ok(found.some((u) => u.id === leaderId));
-    assert.ok(found.every((u) => /lãnh đạo/i.test(u.fullName)));
+    assert.ok(found.every((u) => /văn thành/i.test(u.fullName)));
   });
 
   test('quản trị không dùng được trò chuyện', async () => {
@@ -181,7 +181,7 @@ describe('Nhóm tự tạo', () => {
     const msgs = (await owner.get(`/chat/conversations/${g.id}/messages`)).body.items as any[];
     assert.deepEqual(
       msgs.map((m) => m.body.replace(/^.*? đã /, 'đã ')).reverse(),
-      ['đã tạo nhóm', 'đã đổi tên nhóm thành “Tổ soạn đề thi”', 'đã thêm Nguyễn Văn Lãnh Đạo', 'đã mời Cán bộ khoaso ra khỏi nhóm'],
+      ['đã tạo nhóm', 'đã đổi tên nhóm thành “Tổ soạn đề thi”', 'đã thêm Nguyễn Văn Thành', 'đã mời Cán bộ khoaso ra khỏi nhóm'],
     );
 
     // Người quản lý rời nhóm: người vào sớm nhất nhận quyền quản lý.
@@ -204,7 +204,7 @@ describe('Nhóm theo đơn vị', () => {
 
     const g = (await h.post('/chat/unit-groups', { unitId: khoa })).body;
     assert.equal(g.type, 'UNIT');
-    assert.equal(g.name, 'Khoa Công nghệ thông tin');
+    assert.equal(g.name, 'Khoa Công nghệ thông tin và Công nghệ may');
     assert.equal((await h.post('/chat/unit-groups', { unitId: khoa })).status, 409);
     assert.ok(!(await items(s)).some((c) => c.id === g.id), 'chưa gồm trực thuộc: bộ môn chưa vào nhóm');
 
@@ -327,7 +327,7 @@ describe('Thông báo đẩy tin nhắn', () => {
     await a.post(`/chat/conversations/${c.id}/messages`, { body: 'nội dung không được lộ' });
     const pushed = await waitFor(() => fcmSent.find((m) => m.token === token && m.body.message.data.link === `/chat/${c.id}`));
     assert.equal(pushed.body.message.notification.body, 'Đồng chí có tin nhắn mới');
-    assert.doesNotMatch(JSON.stringify(pushed.body), /không được lộ|canbo|Cán Bộ/);
+    assert.doesNotMatch(JSON.stringify(pushed.body), /không được lộ|canbo|Lê Thị Hà/);
 
     await a.post(`/chat/conversations/${c.id}/messages`, { body: 'tin thứ hai' });
     await new Promise((r) => setTimeout(r, 300));

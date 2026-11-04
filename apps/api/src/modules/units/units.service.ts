@@ -6,9 +6,9 @@ import { CreateUnitDto, UpdateUnitDto } from './units.dto';
 export class UnitsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Danh sách phẳng; giao diện tự dựng cây từ parentId. */
+  /** Danh sách phẳng; giao diện tự dựng cây từ parentId. Cùng cấp xếp theo thứ tự tạo (theo thứ tự đầu mối của trường). */
   list() {
-    return this.prisma.unit.findMany({ orderBy: [{ parentId: 'asc' }, { name: 'asc' }] });
+    return this.prisma.unit.findMany({ orderBy: [{ parentId: 'asc' }, { id: 'asc' }] });
   }
 
   create(dto: CreateUnitDto) {

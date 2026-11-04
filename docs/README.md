@@ -7,6 +7,7 @@
 | `phan-quyen.md` | Ma trận vai trò × chức năng × phạm vi dữ liệu | Tuần 1–2 |
 | `huong-dan-su-dung.md` | Hướng dẫn theo từng vai trò | Tuần 11 |
 | `van-hanh.md` | Khởi động, cập nhật, sao lưu, khôi phục, xử lý sự cố | Tuần 8–11 |
+| `chay-thu-tren-may.md` | Chạy thử toàn bộ hệ thống trên máy cá nhân, kịch bản trình diễn | Đã có |
 | `quy-che.md` | Dự thảo quy chế sử dụng phần mềm | Tuần 11 |
 
 ## Quy tắc phân quyền hiện tại (đã cài đặt)

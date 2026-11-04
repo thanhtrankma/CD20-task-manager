@@ -198,15 +198,14 @@ vào giờ ít người dùng; các container tự chạy lại.
 
 ```bash
 cd /opt/task-manager/infra
-# Mở khóa đăng nhập
-docker compose exec db psql -U taskmanager -c "update users set locked_until=null, failed_logins=0 where username='admin';"
-# Đặt lại 2FA (lần đăng nhập sau phải bật lại)
-docker compose exec db psql -U taskmanager -c "update users set totp_enabled=false, totp_secret=null where username='admin';"
-# Đặt lại mật khẩu: tạo tài khoản quản trị mới bằng seed với ADMIN_USERNAME khác
-docker compose exec -e ADMIN_USERNAME=admin2 -e ADMIN_PASSWORD='<mật khẩu tạm>' api node dist/cli/seed.js
+# Đặt lại mật khẩu (in mật khẩu tạm, phải đổi khi đăng nhập), mở khóa, thu hồi mọi phiên; ghi nhật ký hệ thống
+docker compose exec api node dist/cli/reset-password.js admin
+# Như trên, đồng thời tắt xác thực hai lớp (mất điện thoại; lần đăng nhập sau phải bật lại)
+docker compose exec api node dist/cli/reset-password.js admin --reset-2fa
 ```
 
-Mọi lần dùng lệnh khẩn cấp phải ghi biên bản (ai, khi nào, lý do). Thao tác trực tiếp CSDL không đi qua nhật ký của ứng dụng.
+Mọi lần dùng lệnh khẩn cấp phải ghi biên bản (ai, khi nào, lý do). Lệnh ghi vào nhật ký hệ thống với hành động
+`CLI_RESET_PASSWORD`.
 
 ## 9. Việc định kỳ
 

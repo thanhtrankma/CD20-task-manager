@@ -28,6 +28,9 @@ task-manager/
 
 ## Chạy trên máy phát triển
 
+> Chạy thử nhanh bằng một lệnh, kịch bản trình diễn, tài khoản mẫu, máy ảo iPhone: xem
+> [docs/chay-thu-tren-may.md](docs/chay-thu-tren-may.md) (`infra/scripts/dev-local.sh`).
+
 Yêu cầu: **Node.js 24 LTS** (xem `.nvmrc`; NestJS 12 và Prisma 7 không chạy trên Node 23), Docker.
 
 ```bash
@@ -40,7 +43,7 @@ cp .env.example .env          # điền APP_SECRET (openssl rand -hex 32), ADMIN
                               # VAPID_* (npx web-push generate-vapid-keys)
 npm install
 npx prisma migrate dev        # tạo bảng (client Prisma sinh vào src/generated, tự chạy lại khi build)
-npm run seed:demo             # tài khoản admin + dữ liệu mẫu (lanhdao, truongkhoa, canbo)
+npm run seed:demo             # admin, 14 đầu mối, tài khoản và dữ liệu mẫu (lanhdao, truongkhoa, canbo...)
 npm run dev
 
 # 3. Web (cổng 5173, tự chuyển /api sang cổng 3000)

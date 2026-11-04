@@ -1,6 +1,6 @@
 /**
  * Khởi tạo dữ liệu ban đầu: đơn vị gốc + tài khoản quản trị.
- *   Dev:        npm run seed        (thêm --demo để tạo dữ liệu mẫu)
+ *   Dev:        npm run seed        (--demo: tài khoản mẫu; --showcase: thêm dữ liệu trình diễn)
  *   Production: docker compose exec api node dist/cli/seed.js
  * Đọc ADMIN_USERNAME, ADMIN_PASSWORD (và DEMO_PASSWORD khi --demo) từ biến môi trường.
  */
@@ -8,6 +8,8 @@ import '../env';
 import type { Role } from '../generated/prisma/client';
 import { createPrismaClient } from '../prisma/prisma.service';
 import { hashPassword } from '../common/password';
+import { SCHOOL_UNITS } from './school-units';
+import { seedShowcase } from './showcase';
 
 const prisma = createPrismaClient();
 
@@ -30,6 +32,7 @@ async function upsertUser(
   unitId: number,
   password: string,
   mustChangePassword: boolean,
+  position?: string,
 ) {
   return prisma.user.upsert({
     where: { username },
@@ -39,6 +42,7 @@ async function upsertUser(
       fullName,
       role,
       unitId,
+      position,
       passwordHash: await hashPassword(password),
       mustChangePassword,
     },
@@ -57,18 +61,19 @@ async function main() {
     true,
   );
   console.log(`✔ Đơn vị gốc và tài khoản quản trị "${adminUsername}" (phải đổi mật khẩu lần đầu)`);
+  for (const u of SCHOOL_UNITS) await upsertUnit(u.code, u.name, root.id);
+  console.log(`✔ ${SCHOOL_UNITS.length} đầu mối trực thuộc Nhà trường`);
 
   if (!process.argv.includes('--demo')) return;
 
   const demoPassword = strongPassword('DEMO_PASSWORD');
   const bgh = await upsertUnit('BGH', 'Ban Giám hiệu', root.id);
-  await upsertUnit('PDT', 'Phòng Đào tạo', root.id);
-  const khoa = await upsertUnit('KCNTT', 'Khoa Công nghệ thông tin', root.id);
+  const khoa = await upsertUnit('KCNTT', 'Khoa Công nghệ thông tin và Công nghệ may', root.id);
   const boMon = await upsertUnit('BM-MMT', 'Bộ môn Mạng máy tính', khoa.id);
 
-  const leader = await upsertUser('lanhdao', 'Nguyễn Văn Lãnh Đạo', 'LEADER', bgh.id, demoPassword, false);
-  await upsertUser('truongkhoa', 'Trần Văn Trưởng Khoa', 'UNIT_HEAD', khoa.id, demoPassword, false);
-  const staff = await upsertUser('canbo', 'Lê Thị Cán Bộ', 'STAFF', boMon.id, demoPassword, false);
+  const leader = await upsertUser('lanhdao', 'Nguyễn Văn Thành', 'LEADER', bgh.id, demoPassword, false, 'Hiệu trưởng');
+  await upsertUser('truongkhoa', 'Trần Văn Khoa', 'UNIT_HEAD', khoa.id, demoPassword, false, 'Trưởng khoa');
+  const staff = await upsertUser('canbo', 'Lê Thị Hà', 'STAFF', boMon.id, demoPassword, false, 'Giảng viên');
 
   if ((await prisma.task.count()) === 0) {
     await prisma.task.create({
@@ -83,6 +88,8 @@ async function main() {
     });
   }
   console.log('✔ Dữ liệu mẫu: lanhdao (LEADER), truongkhoa (UNIT_HEAD), canbo (STAFF), mật khẩu = DEMO_PASSWORD');
+
+  if (process.argv.includes('--showcase')) await seedShowcase(prisma, demoPassword);
 }
 
 main()

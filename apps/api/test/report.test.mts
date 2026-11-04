@@ -47,8 +47,8 @@ describe('Thống kê kết quả thực hiện nhiệm vụ', () => {
     const r = (await (await leader()).get(q())).body;
     const unit = (code: string) => r.byUnit.find((u: { name: string }) => u.name === code);
     assert.equal(unit('Bộ môn Mạng máy tính').total, 3);
-    assert.equal(unit('Khoa Công nghệ thông tin').total, 1);
-    const person = r.byPerson.find((p: { fullName: string }) => p.fullName === 'Lê Thị Cán Bộ');
+    assert.equal(unit('Khoa Công nghệ thông tin và Công nghệ may').total, 1);
+    const person = r.byPerson.find((p: { fullName: string }) => p.fullName === 'Lê Thị Hà');
     assert.equal(person.total, 3);
     assert.equal(person.unitName, 'Bộ môn Mạng máy tính');
     assert.ok(person.active >= 1, 'khối lượng đang thực hiện');
