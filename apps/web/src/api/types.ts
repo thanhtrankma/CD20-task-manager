@@ -18,6 +18,8 @@ export interface Me {
   twoFactorRequired: boolean;
   /** Đường dẫn ảnh đại diện (có ?v= theo ảnh), null: chưa có ảnh. */
   avatarUrl: string | null;
+  /** Phụ trách nhân sự – chấm công. */
+  hrManager: boolean;
 }
 
 export interface Unit {
@@ -44,6 +46,7 @@ export interface UserRow {
   lockedUntil: string | null;
   unit: { id: number; name: string };
   avatarUrl: string | null;
+  hrManager: boolean;
 }
 
 interface Person {
@@ -254,4 +257,180 @@ export interface ConversationDetail extends ConversationItem {
   canManage: boolean;
   canAddMembers: boolean;
   canLeave: boolean;
+}
+
+// ---------- Nghỉ phép, chấm công ----------
+
+export type LeaveStatus = 'PENDING_UNIT' | 'PENDING_LEADER' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'REVOKED';
+export type DayPart = 'FULL' | 'MORNING' | 'AFTERNOON';
+
+export interface StaffCategory {
+  id: number;
+  name: string;
+  annualDays: number;
+  sortOrder: number;
+}
+
+export interface LeaveType {
+  id: number;
+  code: string;
+  name: string;
+  deductsBalance: boolean;
+  isActive: boolean;
+}
+
+export interface WorkShift {
+  id: number;
+  name: string;
+  startTime: string;
+  endTime: string;
+  breakStart: string;
+  breakEnd: string;
+  graceMinutes: number;
+  /** 1 = thứ Hai … 7 = Chủ nhật. */
+  workdays: number[];
+  isDefault: boolean;
+}
+
+export interface HrCatalog {
+  categories: StaffCategory[];
+  leaveTypes: LeaveType[];
+  shifts: WorkShift[];
+  unitShifts: { id: number; workShiftId: number }[];
+  settings: { leaveEscalateDays: number };
+}
+
+export interface Holiday {
+  id: number;
+  date: string;
+  name: string;
+}
+
+export interface LeaveBalance {
+  year: number;
+  entitled: number;
+  source: 'custom' | 'category' | 'default';
+  category: string | null;
+  carried: number;
+  used: number;
+  pending: number;
+  remaining: number;
+  note: string | null;
+}
+
+interface PersonPosition extends Person {
+  position: string | null;
+}
+
+export interface LeaveRequest {
+  id: number;
+  userId: number;
+  startDate: string;
+  endDate: string;
+  startPart: DayPart;
+  endPart: DayPart;
+  days: number;
+  reason: string;
+  status: LeaveStatus;
+  approverUnitId: number | null;
+  needsLeader: boolean;
+  unitDecidedAt: string | null;
+  leaderDecidedAt: string | null;
+  decisionNote: string | null;
+  revokedAt: string | null;
+  createdAt: string;
+  user: PersonPosition & { unitId: number; unit: { id: number; name: string } };
+  type: { id: number; name: string; deductsBalance: boolean };
+  approverUnit: { id: number; name: string } | null;
+  unitDecidedBy: PersonPosition | null;
+  leaderDecidedBy: PersonPosition | null;
+  revokedBy: PersonPosition | null;
+}
+
+export interface LeaveDetail extends LeaveRequest {
+  permissions: { decide: boolean; cancel: boolean; revoke: boolean };
+}
+
+export type DayStatus =
+  | 'OK'
+  | 'LATE'
+  | 'EARLY'
+  | 'LATE_EARLY'
+  | 'MISSING'
+  | 'ABSENT'
+  | 'LEAVE'
+  | 'HOLIDAY'
+  | 'WEEKEND'
+  | 'PENDING';
+
+export interface AttendanceDay {
+  day: string;
+  weekday: number;
+  status: DayStatus;
+  holiday?: string;
+  leave?: { part: DayPart; type: string };
+  in?: string;
+  out?: string;
+  punches: string[];
+  late: number;
+  early: number;
+  work: number;
+}
+
+export interface AttendanceSummary {
+  scheduled: number;
+  work: number;
+  leave: number;
+  lateCount: number;
+  lateMinutes: number;
+  earlyCount: number;
+  earlyMinutes: number;
+  missing: number;
+  absent: number;
+}
+
+export interface PersonAttendance {
+  from: string;
+  to: string;
+  user: { id: number; fullName: string; attendanceCode: string | null; unit: { id: number; name: string } };
+  shift: WorkShift;
+  days: AttendanceDay[];
+  summary: AttendanceSummary;
+}
+
+export interface UnitAttendance {
+  from: string;
+  to: string;
+  days: { day: string; weekday: number; holiday: string | null }[];
+  rows: {
+    user: { id: number; fullName: string; position: string | null; attendanceCode: string | null; unit: { id: number; name: string } };
+    shift: string;
+    days: AttendanceDay[];
+    summary: AttendanceSummary;
+  }[];
+}
+
+export interface StaffRow {
+  id: number;
+  username: string;
+  fullName: string;
+  position: string | null;
+  role: Role;
+  attendanceCode: string | null;
+  staffCategoryId: number | null;
+  unit: { id: number; name: string };
+  balance: LeaveBalance;
+}
+
+export interface AttendanceImport {
+  id: number;
+  fileName: string;
+  total: number;
+  inserted: number;
+  duplicates: number;
+  unmatched: number;
+  rangeFrom: string | null;
+  rangeTo: string | null;
+  createdAt: string;
+  uploadedBy: Person;
 }

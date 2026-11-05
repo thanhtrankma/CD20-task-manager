@@ -8,8 +8,10 @@ import '../env';
 import type { Role } from '../generated/prisma/client';
 import { createPrismaClient } from '../prisma/prisma.service';
 import { hashPassword } from '../common/password';
+import { seedHrDefaults } from './hr-defaults';
 import { SCHOOL_UNITS } from './school-units';
 import { seedShowcase } from './showcase';
+import { seedShowcaseHr } from './showcase-hr';
 
 const prisma = createPrismaClient();
 
@@ -63,6 +65,7 @@ async function main() {
   console.log(`✔ Đơn vị gốc và tài khoản quản trị "${adminUsername}" (phải đổi mật khẩu lần đầu)`);
   for (const u of SCHOOL_UNITS) await upsertUnit(u.code, u.name, root.id);
   console.log(`✔ ${SCHOOL_UNITS.length} đầu mối trực thuộc Nhà trường`);
+  await seedHrDefaults(prisma);
 
   if (!process.argv.includes('--demo')) return;
 
@@ -89,7 +92,10 @@ async function main() {
   }
   console.log('✔ Dữ liệu mẫu: lanhdao (LEADER), truongkhoa (UNIT_HEAD), canbo (STAFF), mật khẩu = DEMO_PASSWORD');
 
-  if (process.argv.includes('--showcase')) await seedShowcase(prisma, demoPassword);
+  if (process.argv.includes('--showcase')) {
+    await seedShowcase(prisma, demoPassword);
+    await seedShowcaseHr(prisma, demoPassword);
+  }
 }
 
 main()

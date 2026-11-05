@@ -37,6 +37,7 @@ export const toPublicUser = (u: User) => ({
   unitId: u.unitId,
   mustChangePassword: u.mustChangePassword,
   totpEnabled: u.totpEnabled,
+  hrManager: u.hrManager,
   twoFactorMandatory: twoFactorMandatory(u.role),
   twoFactorRequired: twoFactorMissing(u),
   avatarUrl: avatarUrl(u),

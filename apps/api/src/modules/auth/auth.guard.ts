@@ -7,14 +7,14 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Role } from '../../generated/prisma/client';
-import { ALLOW_PENDING_2FA, ALLOW_PENDING_PASSWORD, IS_PUBLIC, ROLES } from '../../common/decorators';
+import { ALLOW_PENDING_2FA, ALLOW_PENDING_PASSWORD, HR_MANAGER, IS_PUBLIC, ROLES } from '../../common/decorators';
 import { twoFactorMissing } from '../../common/two-factor';
 import type { AuthRequest } from '../../common/types';
 import { SESSION_COOKIE, SessionService } from './session.service';
 
 /**
  * Guard toàn cục: mặc định mọi route đều phải đăng nhập (trừ @Public),
- * kiểm tra vai trò (@Roles), chặn tài khoản chưa đổi mật khẩu lần đầu
+ * kiểm tra vai trò (@Roles), quyền phụ trách nhân sự (@HrManager), chặn tài khoản chưa đổi mật khẩu lần đầu
  * và tài khoản thuộc vai trò bắt buộc xác thực hai lớp nhưng chưa bật.
  */
 @Injectable()
@@ -53,6 +53,9 @@ export class AuthGuard implements CanActivate {
     const roles = this.reflector.getAllAndOverride<Role[] | undefined>(ROLES, targets);
     if (roles && !roles.includes(user.role)) {
       throw new ForbiddenException('Không có quyền thực hiện chức năng này');
+    }
+    if (this.reflector.getAllAndOverride<boolean>(HR_MANAGER, targets) && !user.hrManager) {
+      throw new ForbiddenException('Chức năng dành cho cán bộ phụ trách nhân sự – chấm công');
     }
     return true;
   }

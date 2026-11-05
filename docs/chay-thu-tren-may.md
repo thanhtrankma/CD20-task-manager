@@ -100,6 +100,7 @@ Mật khẩu các tài khoản mẫu là `DEMO_PASSWORD` trong `apps/api/.env`.
 | `truongkhoakt`, `truongkhoadien`, `truongkhoack` | Chỉ huy đơn vị | Khoa KT-KT tổng hợp, Khoa Điện - Điện tử - Điện lạnh, Khoa Cơ khí động lực | |
 | `giamdoctt1`, `giamdoctt2`, `giamdoctt3` | Chỉ huy đơn vị | Trung tâm Đào tạo và Sát hạch lái xe số 1, 2, 3 | |
 | `canbodt` | Cán bộ | Phòng Đào tạo | |
+| `canbonhansu` | Cán bộ, phụ trách nhân sự – chấm công | Phòng Chính trị và CTSV | Menu **Nhân sự**: nhập dữ liệu chấm công, quỹ phép, cấu hình |
 | `admin` | Quản trị | Nhà trường | Đổi mật khẩu lần đầu, bắt buộc xác thực hai lớp |
 
 Muốn thử nhanh không cần điện thoại xác thực: thêm dòng `REQUIRE_2FA_ROLES=` (để trống) vào `apps/api/.env`,
@@ -131,9 +132,12 @@ Dùng hai trình duyệt khác nhau (hoặc một cửa sổ thường, một c�
    lại. Thử **Tạo nhóm**, **Nhóm theo đơn vị** (chỉ huy), thu hồi tin.
 8. **Tài khoản**: **Tài khoản & nhắc việc** → đổi ảnh đại diện, bật thông báo trên trình duyệt, **Gửi thông báo thử**.
    Nhập địa chỉ thư bất kỳ rồi gửi thử: thư hiện ở http://localhost:8025.
-9. **Quản trị** (`admin`): **Tài khoản** (thêm, nhập từ Excel, khóa, đặt lại mật khẩu), **Đơn vị**, **Nhật ký hệ thống**
+9. **Nghỉ phép, chấm công**: `canbo2` → **Nghỉ phép** → **Đăng ký nghỉ** 2 ngày; `truongkhoa` → **Nghỉ phép** →
+   **Chờ tôi duyệt** → Duyệt. Đơn quá 3 ngày chuyển tiếp `lanhdao`. **Chấm công**: lịch tháng của mình;
+   `truongkhoa` → **Bảng công** → Xuất Excel; `canbonhansu` → **Dữ liệu chấm công** → nhập tệp (xem `docs/cham-cong.md`).
+10. **Quản trị** (`admin`): **Tài khoản** (thêm, nhập từ Excel, khóa, đặt lại mật khẩu), **Đơn vị**, **Nhật ký hệ thống**
    (xem lại các thao tác vừa làm).
-10. **Phân quyền**: đăng nhập `canbo` → không thấy mục Thống kê, chỉ thấy việc của mình; `admin` không thấy nhiệm vụ,
+11. **Phân quyền**: đăng nhập `canbo` → không thấy mục Thống kê, chỉ thấy việc của mình; `admin` không thấy nhiệm vụ,
     trò chuyện.
 
 ## 6. Chạy ứng dụng điện thoại trên máy ảo iPhone

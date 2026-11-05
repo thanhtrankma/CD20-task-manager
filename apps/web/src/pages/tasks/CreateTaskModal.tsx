@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, DatePicker, Form, Input, Modal, Select, TreeSelect, Upload } from 'antd';
 import type { UploadFile } from 'antd';
-import type { Dayjs } from 'dayjs';
+import dayjs, { type Dayjs } from 'dayjs';
 import { Upload as UploadIcon } from 'lucide-react';
 import { useState } from 'react';
 import { api } from '../../api/client';
@@ -47,6 +47,22 @@ export function CreateTaskModal({
   const [files, setFiles] = useState<UploadFile[]>([]);
   const units = useQuery({ queryKey: ['units'], queryFn: () => api.get<Unit[]>('/units'), enabled: open });
   const userOptions = useUserOptions(open);
+  // Người nhận đang có lịch nghỉ phép (đã duyệt) trong thời gian từ hôm nay đến hạn: ghi chú ngay trong danh sách chọn.
+  const due = Form.useWatch('dueDate', form) as Dayjs | undefined;
+  const range = { from: dayjs().format('YYYY-MM-DD'), to: (due ?? dayjs().add(7, 'day')).format('YYYY-MM-DD') };
+  const absent = useQuery({
+    queryKey: ['leave', 'absent', range],
+    queryFn: () => api.get<{ userId: number; startDate: string; endDate: string }[]>(`/leave/absent?from=${range.from}&to=${range.to}`),
+    enabled: open,
+  });
+  const leaveNote = new Map<number, string>();
+  for (const a of absent.data ?? []) {
+    const span = a.startDate === a.endDate ? dayjs(a.startDate).format('DD/MM') : `${dayjs(a.startDate).format('DD/MM')}–${dayjs(a.endDate).format('DD/MM')}`;
+    leaveNote.set(a.userId, [leaveNote.get(a.userId), span].filter(Boolean).join(', '));
+  }
+  const workerOptions = userOptions.map((o) =>
+    leaveNote.has(o.value) ? { ...o, label: `${o.label} · nghỉ phép ${leaveNote.get(o.value)}` } : o,
+  );
 
   const create = useMutation({
     mutationFn: async (v: Values) => {
@@ -136,10 +152,10 @@ export function CreateTaskModal({
           />
         </Form.Item>
         <Form.Item name="leadUsers" label="Cá nhân chủ trì">
-          <Select mode="multiple" options={userOptions} optionFilterProp="label" allowClear />
+          <Select mode="multiple" options={workerOptions} optionFilterProp="label" allowClear />
         </Form.Item>
         <Form.Item name="supportUsers" label="Người phối hợp">
-          <Select mode="multiple" options={userOptions} optionFilterProp="label" allowClear />
+          <Select mode="multiple" options={workerOptions} optionFilterProp="label" allowClear />
         </Form.Item>
         <Form.Item name="followers" label="Người theo dõi" extra="Nắm tình hình, nhận thông báo; không phải thực hiện">
           <Select mode="multiple" options={userOptions} optionFilterProp="label" allowClear />

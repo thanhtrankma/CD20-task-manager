@@ -158,4 +158,10 @@ Nguyên tắc an toàn:
 | POST | `/api/chat/direct` · `/groups` · `/unit-groups` | Nhắn riêng, nhóm tự tạo, nhóm theo đơn vị |
 | GET/POST | `/api/chat/conversations/:id/messages` · `/read` · `/mute` · `/members` | Tin nhắn, đã đọc, tắt thông báo, thành viên |
 | GET | `/api/chat/stream` | Server-Sent Events: tin mới, thu hồi, đổi nhóm (đầy đủ ở roadmap.md, giai đoạn G) |
+| GET/POST | `/api/leave?scope=mine\|approve\|unit` · `/api/leave/:id` | Đơn nghỉ phép: của tôi, chờ tôi duyệt, trong phạm vi xem; gửi đơn (tự tính ngày làm việc, bỏ ngày lễ) |
+| POST | `/api/leave/preview` · `/:id/decide` · `/:id/cancel` · `/:id/revoke` · `/approve-batch` | Tính thử số ngày; duyệt hoặc không duyệt (bắt buộc lý do); rút đơn; hủy duyệt; duyệt nhiều đơn |
+| GET | `/api/leave/balance?userId=&year=` · `/pending-count` · `/absent?from=&to=` | Quỹ phép năm; số đơn chờ duyệt; người đang nghỉ (gợi ý khi giao việc) |
+| GET | `/api/attendance/me` · `/users/:id` · `/unit?unitId=&from=&to=` | Lịch sử chấm công từng ngày (đủ công, muộn, sớm, thiếu, vắng, nghỉ phép); bảng công đơn vị (tối đa 62 ngày) |
+| POST/GET | `/api/attendance/import` · `/imports` · `/unmatched` | Phụ trách nhân sự nhập lượt chấm từ tệp máy chấm công (bỏ trùng); lịch sử nhập; mã chưa ghép |
+| GET/POST/PATCH | `/api/hr/catalog` · `/holidays` · `/categories` · `/leave-types` · `/shifts` · `/settings` · `/staff` · `/balances` | Danh mục nghỉ phép, chấm công (xem: mọi người; sửa: phụ trách nhân sự), mã chấm công, quỹ phép |
 | GET | `/api/health` | Kiểm tra hoạt động |

@@ -10,6 +10,10 @@ export const ROLES = 'roles';
 /** Chỉ các vai trò được liệt kê mới gọi được. */
 export const Roles = (...roles: Role[]) => SetMetadata(ROLES, roles);
 
+export const HR_MANAGER = 'hrManager';
+/** Chỉ người phụ trách nhân sự – chấm công (cờ hrManager trên tài khoản). */
+export const HrManager = () => SetMetadata(HR_MANAGER, true);
+
 export const ALLOW_PENDING_PASSWORD = 'allowPendingPassword';
 /** Cho phép gọi khi tài khoản còn phải đổi mật khẩu (me, logout, change-password). */
 export const AllowPendingPassword = () => SetMetadata(ALLOW_PENDING_PASSWORD, true);

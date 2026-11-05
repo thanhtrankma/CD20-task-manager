@@ -49,6 +49,7 @@ export class SessionService {
       unitId: u.unitId,
       mustChangePassword: u.mustChangePassword,
       totpEnabled: u.totpEnabled,
+      hrManager: u.hrManager,
       sessionId: id,
     };
   }

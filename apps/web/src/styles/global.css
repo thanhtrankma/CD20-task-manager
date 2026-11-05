@@ -413,3 +413,22 @@ a.stat:hover { border-color: #bfdbfe; box-shadow: 0 20px 40px -24px rgba(37, 99,
   .chat-back { display: grid; }
   .chat-bubble-wrap { max-width: 85%; }
 }
+
+/* Chấm công: lịch tháng, bảng công */
+.att-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.att-cal-head { text-align: center; font-size: 12px; font-weight: 600; color: var(--c-muted); padding-bottom: 2px; }
+.att-cal-day { min-height: 82px; border: 1px solid var(--c-border); border-radius: 10px; padding: 6px 8px; display: flex; flex-direction: column; gap: 2px; cursor: default; }
+.att-cal-day.today { border-color: var(--c-primary); box-shadow: 0 0 0 1px var(--c-primary); }
+.att-cal-num { font-weight: 700; font-size: 13px; }
+.att-cal-status { font-size: 12px; font-weight: 600; line-height: 1.25; }
+.att-cal-time { font-size: 12px; color: #334155; font-variant-numeric: tabular-nums; }
+.att-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 14px; font-size: 12px; color: var(--c-muted); }
+.att-legend i { display: inline-block; width: 12px; height: 12px; border: 1px solid; border-radius: 3px; margin-right: 6px; vertical-align: -2px; }
+.att-sheet .ant-table-cell.att-cell { padding: 4px 2px !important; text-align: center; font-size: 12px; font-weight: 700; }
+.att-sheet .att-day-head { text-align: center; line-height: 1.15; font-size: 11px; }
+.att-sheet .att-day-head.off { color: var(--c-muted); font-weight: 400; }
+@media (max-width: 640px) {
+  .att-cal { gap: 3px; }
+  .att-cal-day { min-height: 58px; padding: 4px; }
+  .att-cal-status, .att-cal-time { font-size: 10px; }
+}

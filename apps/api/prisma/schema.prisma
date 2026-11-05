@@ -79,6 +79,28 @@ enum PushProvider {
 }
 
 // Dòng hoạt động của nhiệm vụ (hiển thị trong chi tiết). Không lưu nội dung bình luận, báo cáo.
+// Đơn nghỉ phép: chỉ huy đơn vị duyệt; nghỉ quá ngưỡng ngày (cài đặt leaveEscalateDays) chuyển lên lãnh đạo.
+enum LeaveStatus {
+  PENDING_UNIT // Chờ chỉ huy đơn vị duyệt
+  PENDING_LEADER // Chờ lãnh đạo nhà trường duyệt
+  APPROVED
+  REJECTED
+  CANCELLED // Người gửi rút khi chưa duyệt xong
+  REVOKED // Hủy sau khi đã duyệt (hoàn lại ngày phép)
+}
+
+// Phần ngày nghỉ: cả ngày, buổi sáng hoặc buổi chiều.
+enum DayPart {
+  FULL
+  MORNING
+  AFTERNOON
+}
+
+enum PunchSource {
+  IMPORT // Nhập tệp xuất từ máy hoặc phần mềm chấm công
+  DEVICE // Máy chấm công gửi thẳng (làm sau)
+}
+
 enum TaskActivityType {
   CREATED
   ACKNOWLEDGED
@@ -96,18 +118,22 @@ enum TaskActivityType {
 }
 
 model Unit {
-  id        Int      @id @default(autoincrement())
-  code      String   @unique
-  name      String
-  parentId  Int?     @map("parent_id")
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  name        String
+  parentId    Int?     @map("parent_id")
+  isActive    Boolean  @default(true) @map("is_active")
+  /// Ca làm việc riêng của đơn vị; không gán thì theo đơn vị cấp trên, cuối cùng là ca mặc định.
+  workShiftId Int?     @map("work_shift_id")
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  parent      Unit?          @relation("UnitTree", fields: [parentId], references: [id])
-  children    Unit[]         @relation("UnitTree")
-  users       User[]
-  assignments TaskAssignee[]
-  chatGroup   Conversation?
+  parent         Unit?          @relation("UnitTree", fields: [parentId], references: [id])
+  children       Unit[]         @relation("UnitTree")
+  users          User[]
+  assignments    TaskAssignee[]
+  chatGroup      Conversation?
+  workShift      WorkShift?     @relation(fields: [workShiftId], references: [id], onDelete: SetNull)
+  leaveApprovals LeaveRequest[]
 
   @@map("units")
 }
@@ -131,30 +157,44 @@ model User {
   lastLoginAt        DateTime? @map("last_login_at")
   /// Tên tệp ảnh đại diện (ngẫu nhiên) trong thư mục uploads/avatars.
   avatarFile         String?   @map("avatar_file")
+  /// Phụ trách nhân sự – chấm công: nhập dữ liệu chấm công, quản lý quỹ phép, xem toàn trường. Quản trị bật.
+  hrManager          Boolean   @default(false) @map("hr_manager")
+  /// Đối tượng (sĩ quan, QNCN, CNVQP, hợp đồng…): quyết định số ngày phép mặc định.
+  staffCategoryId    Int?      @map("staff_category_id")
+  /// Mã nhân viên trên máy chấm công.
+  attendanceCode     String?   @unique @map("attendance_code") @db.VarChar(32)
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")
 
-  unit               Unit               @relation(fields: [unitId], references: [id])
-  sessions           Session[]
-  createdTasks       Task[]             @relation("TaskCreator")
-  assignments        TaskAssignee[]     @relation("Assignee")
-  acknowledgements   TaskAssignee[]     @relation("Acknowledger")
-  follows            TaskFollower[]
-  activities         TaskActivity[]
-  taskUpdates        TaskUpdate[]
-  submissions        Submission[]       @relation("Submitter")
-  reviews            Submission[]       @relation("Reviewer")
-  extensionRequests  ExtensionRequest[] @relation("Requester")
-  extensionDecisions ExtensionRequest[] @relation("Decider")
-  attachments        Attachment[]
-  comments           Comment[]
-  notifications      Notification[]
-  pushSubscriptions  PushSubscription[]
-  devices            Device[]
-  auditLogs          AuditLog[]
-  conversationsMade  Conversation[]
-  memberships        ConversationMember[]
-  messages           Message[]
+  unit                 Unit                 @relation(fields: [unitId], references: [id])
+  sessions             Session[]
+  createdTasks         Task[]               @relation("TaskCreator")
+  assignments          TaskAssignee[]       @relation("Assignee")
+  acknowledgements     TaskAssignee[]       @relation("Acknowledger")
+  follows              TaskFollower[]
+  activities           TaskActivity[]
+  taskUpdates          TaskUpdate[]
+  submissions          Submission[]         @relation("Submitter")
+  reviews              Submission[]         @relation("Reviewer")
+  extensionRequests    ExtensionRequest[]   @relation("Requester")
+  extensionDecisions   ExtensionRequest[]   @relation("Decider")
+  attachments          Attachment[]
+  comments             Comment[]
+  notifications        Notification[]
+  pushSubscriptions    PushSubscription[]
+  devices              Device[]
+  auditLogs            AuditLog[]
+  conversationsMade    Conversation[]
+  memberships          ConversationMember[]
+  messages             Message[]
+  staffCategory        StaffCategory?       @relation(fields: [staffCategoryId], references: [id], onDelete: SetNull)
+  leaveBalances        LeaveBalance[]
+  leaveRequests        LeaveRequest[]       @relation("LeaveRequester")
+  leaveUnitDecisions   LeaveRequest[]       @relation("LeaveUnitDecider")
+  leaveLeaderDecisions LeaveRequest[]       @relation("LeaveLeaderDecider")
+  leaveRevocations     LeaveRequest[]       @relation("LeaveRevoker")
+  punches              AttendancePunch[]
+  attendanceImports    AttendanceImport[]
 
   @@index([unitId])
   @@map("users")
@@ -233,14 +273,14 @@ model Task {
 
 // Người nhận việc: hoặc một cá nhân (userId), hoặc một đơn vị (unitId).
 model TaskAssignee {
-  id     Int          @id @default(autoincrement())
-  taskId Int          @map("task_id")
-  userId Int?         @map("user_id")
-  unitId Int?         @map("unit_id")
-  role   AssigneeRole @default(LEAD)
+  id               Int          @id @default(autoincrement())
+  taskId           Int          @map("task_id")
+  userId           Int?         @map("user_id")
+  unitId           Int?         @map("unit_id")
+  role             AssigneeRole @default(LEAD)
   /// Thời điểm người được giao (hoặc chỉ huy đơn vị được giao) xác nhận đã nhận nhiệm vụ.
-  acknowledgedAt   DateTime? @map("acknowledged_at")
-  acknowledgedById Int?      @map("acknowledged_by_id")
+  acknowledgedAt   DateTime?    @map("acknowledged_at")
+  acknowledgedById Int?         @map("acknowledged_by_id")
 
   task           Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user           User? @relation("Assignee", fields: [userId], references: [id])
@@ -481,4 +521,169 @@ model Message {
 
   @@index([conversationId, id])
   @@map("messages")
+}
+
+// ---------- Nghỉ phép ----------
+
+model StaffCategory {
+  id         Int    @id @default(autoincrement())
+  name       String @unique
+  /// Số ngày phép năm mặc định.
+  annualDays Float  @default(12) @map("annual_days")
+  sortOrder  Int    @default(0) @map("sort_order")
+
+  users User[]
+
+  @@map("staff_categories")
+}
+
+model LeaveType {
+  id             Int     @id @default(autoincrement())
+  code           String  @unique
+  name           String
+  /// Trừ vào quỹ phép năm.
+  deductsBalance Boolean @default(false) @map("deducts_balance")
+  isActive       Boolean @default(true) @map("is_active")
+  sortOrder      Int     @default(0) @map("sort_order")
+
+  requests LeaveRequest[]
+
+  @@map("leave_types")
+}
+
+// Quỹ phép từng người theo năm. entitledDays trống: lấy theo đối tượng.
+model LeaveBalance {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id")
+  year         Int
+  entitledDays Float?   @map("entitled_days")
+  /// Phép tồn chuyển từ năm trước.
+  carriedDays  Float    @default(0) @map("carried_days")
+  note         String?  @db.VarChar(500)
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, year])
+  @@map("leave_balances")
+}
+
+model LeaveRequest {
+  id                Int         @id @default(autoincrement())
+  userId            Int         @map("user_id")
+  typeId            Int         @map("type_id")
+  startDate         DateTime    @map("start_date") @db.Date
+  endDate           DateTime    @map("end_date") @db.Date
+  /// Ngày đầu: cả ngày hoặc chỉ buổi chiều (đơn một ngày: cả ngày, sáng hoặc chiều).
+  startPart         DayPart     @default(FULL) @map("start_part")
+  /// Ngày cuối: cả ngày hoặc chỉ buổi sáng.
+  endPart           DayPart     @default(FULL) @map("end_part")
+  /// Số ngày làm việc nghỉ (đã bỏ ngày nghỉ hằng tuần, ngày lễ), tính lúc gửi đơn.
+  days              Float
+  reason            String      @db.Text
+  status            LeaveStatus
+  /// Đơn vị có chỉ huy duyệt cấp 1; trống khi đơn lên thẳng lãnh đạo.
+  approverUnitId    Int?        @map("approver_unit_id")
+  /// Cần lãnh đạo duyệt sau chỉ huy đơn vị.
+  needsLeader       Boolean     @default(false) @map("needs_leader")
+  unitDecidedById   Int?        @map("unit_decided_by_id")
+  unitDecidedAt     DateTime?   @map("unit_decided_at")
+  leaderDecidedById Int?        @map("leader_decided_by_id")
+  leaderDecidedAt   DateTime?   @map("leader_decided_at")
+  /// Lý do từ chối, ghi chú khi duyệt hoặc khi hủy duyệt.
+  decisionNote      String?     @map("decision_note") @db.Text
+  revokedById       Int?        @map("revoked_by_id")
+  revokedAt         DateTime?   @map("revoked_at")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  user            User      @relation("LeaveRequester", fields: [userId], references: [id])
+  type            LeaveType @relation(fields: [typeId], references: [id])
+  approverUnit    Unit?     @relation(fields: [approverUnitId], references: [id])
+  unitDecidedBy   User?     @relation("LeaveUnitDecider", fields: [unitDecidedById], references: [id])
+  leaderDecidedBy User?     @relation("LeaveLeaderDecider", fields: [leaderDecidedById], references: [id])
+  revokedBy       User?     @relation("LeaveRevoker", fields: [revokedById], references: [id])
+
+  @@index([userId, startDate])
+  @@index([status])
+  @@index([approverUnitId, status])
+  @@map("leave_requests")
+}
+
+// ---------- Chấm công ----------
+
+model Holiday {
+  id   Int      @id @default(autoincrement())
+  date DateTime @unique @db.Date
+  name String
+
+  @@map("holidays")
+}
+
+model WorkShift {
+  id           Int     @id @default(autoincrement())
+  name         String
+  /// Giờ vào, giờ ra dạng "HH:mm" theo giờ Việt Nam.
+  startTime    String  @map("start_time") @db.VarChar(5)
+  endTime      String  @map("end_time") @db.VarChar(5)
+  /// Nghỉ trưa: mốc tính nửa ngày (nghỉ buổi sáng thì vào trước breakEnd, nghỉ buổi chiều thì ra sau breakStart).
+  breakStart   String  @default("11:30") @map("break_start") @db.VarChar(5)
+  breakEnd     String  @default("13:30") @map("break_end") @db.VarChar(5)
+  /// Số phút cho phép đi muộn, về sớm.
+  graceMinutes Int     @default(5) @map("grace_minutes")
+  /// Ngày làm việc trong tuần: 1 = thứ Hai … 7 = Chủ nhật.
+  workdays     Int[]   @default([1, 2, 3, 4, 5])
+  isDefault    Boolean @default(false) @map("is_default")
+
+  units Unit[]
+
+  @@map("work_shifts")
+}
+
+// Một lượt chấm công: chỉ mã nhân viên và thời điểm (không lấy dữ liệu vân tay, khuôn mặt).
+model AttendancePunch {
+  id        Int         @id @default(autoincrement())
+  code      String      @db.VarChar(32)
+  punchedAt DateTime    @map("punched_at")
+  /// Tài khoản có mã này; trống khi mã chưa được ghép.
+  userId    Int?        @map("user_id")
+  source    PunchSource @default(IMPORT)
+  importId  Int?        @map("import_id")
+  createdAt DateTime    @default(now()) @map("created_at")
+
+  user       User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  importedBy AttendanceImport? @relation(fields: [importId], references: [id], onDelete: SetNull)
+
+  @@unique([code, punchedAt])
+  @@index([userId, punchedAt])
+  @@map("attendance_punches")
+}
+
+model AttendanceImport {
+  id           Int       @id @default(autoincrement())
+  fileName     String    @map("file_name")
+  uploadedById Int       @map("uploaded_by_id")
+  total        Int
+  inserted     Int
+  duplicates   Int
+  /// Số lượt có mã chưa ghép với tài khoản.
+  unmatched    Int
+  rangeFrom    DateTime? @map("range_from")
+  rangeTo      DateTime? @map("range_to")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  uploadedBy User              @relation(fields: [uploadedById], references: [id])
+  punches    AttendancePunch[]
+
+  @@index([createdAt])
+  @@map("attendance_imports")
+}
+
+// Cài đặt chung dạng khóa – giá trị (ví dụ leaveEscalateDays).
+model AppSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
 }

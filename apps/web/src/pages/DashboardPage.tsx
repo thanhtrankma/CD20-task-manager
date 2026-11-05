@@ -8,7 +8,6 @@ import {
   Hourglass,
   Inbox,
   TriangleAlert,
-  type LucideIcon,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
@@ -17,41 +16,9 @@ import { useAuth } from '../auth/AuthContext';
 import { ItemList, ItemRow } from '../components/ItemList';
 import { EnablePushBanner } from '../components/NotificationSettings';
 import { DueTag } from '../components/Pill';
+import { Stat } from '../components/Stat';
 import { TODO_REASON } from '../constants';
 import { PageHeader, Panel } from '../layouts/shell';
-
-function Stat({
-  label,
-  value,
-  icon: Icon,
-  tone,
-  to,
-}: {
-  label: string;
-  value: number | undefined;
-  icon: LucideIcon;
-  tone: string;
-  to?: string;
-}) {
-  const body = (
-    <>
-      <div className="stat-top">
-        <span className="stat-label">{label}</span>
-        <span className={`icon-tile ${tone}`}>
-          <Icon size={20} />
-        </span>
-      </div>
-      <span className="stat-value">{value ?? '–'}</span>
-    </>
-  );
-  return to ? (
-    <Link to={to} className="stat">
-      {body}
-    </Link>
-  ) : (
-    <div className="stat">{body}</div>
-  );
-}
 
 const greeting = () => {
   const h = new Date().getHours();

@@ -10,6 +10,8 @@ export interface AuthUser {
   unitId: number;
   mustChangePassword: boolean;
   totpEnabled: boolean;
+  /** Phụ trách nhân sự – chấm công. */
+  hrManager: boolean;
   sessionId: string;
 }
 

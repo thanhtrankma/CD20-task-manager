@@ -5,11 +5,14 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AuditInterceptor } from './common/audit.interceptor';
 import { env } from './env';
+import { AttendanceModule } from './modules/attendance/attendance.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { FilesModule } from './modules/files/files.module';
+import { HrModule } from './modules/hr/hr.module';
+import { LeaveModule } from './modules/leave/leave.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { SubmissionsModule } from './modules/submissions/submissions.module';
 import { TasksModule } from './modules/tasks/tasks.module';
@@ -32,6 +35,9 @@ import { PrismaModule } from './prisma/prisma.module';
     FilesModule,
     DashboardModule,
     ChatModule,
+    HrModule,
+    LeaveModule,
+    AttendanceModule,
   ],
   controllers: [AppController],
   providers: [

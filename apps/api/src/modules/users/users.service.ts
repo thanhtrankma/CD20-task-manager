@@ -23,6 +23,7 @@ const SAFE_FIELDS = {
   lastLoginAt: true,
   lockedUntil: true,
   avatarFile: true,
+  hrManager: true,
   unit: { select: { id: true, name: true } },
 } satisfies Prisma.UserSelect;
 
@@ -81,7 +82,12 @@ export class UsersService {
   }
 
   async update(id: number, dto: UpdateUserDto) {
-    const before = await this.prisma.user.findUniqueOrThrow({ where: { id }, select: { role: true } });
+    const before = await this.prisma.user.findUniqueOrThrow({ where: { id }, select: { role: true, hrManager: true } });
+    // Quản trị không xem dữ liệu nhân sự: không bật cờ phụ trách nhân sự cho tài khoản quản trị.
+    if ((dto.role ?? before.role) === 'ADMIN' && (dto.hrManager ?? before.hrManager)) {
+      if (dto.hrManager) throw new BadRequestException('Tài khoản quản trị không làm phụ trách nhân sự');
+      dto = { ...dto, hrManager: false };
+    }
     const user = await this.prisma.user.update({ where: { id }, data: dto, select: SAFE_FIELDS });
     // Khóa tài khoản hoặc đổi vai trò: đăng xuất mọi nơi (sửa thông tin khác thì không).
     if (dto.isActive === false || (dto.role && dto.role !== before.role)) await this.sessions.destroyAllForUser(id);

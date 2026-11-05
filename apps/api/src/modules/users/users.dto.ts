@@ -36,6 +36,8 @@ export class UpdateUserDto {
   @IsOptional() @IsInt() unitId?: number;
   @IsOptional() @IsEnum(Role) role?: Role;
   @IsOptional() @IsBoolean() isActive?: boolean;
+  /** Phụ trách nhân sự – chấm công (không áp dụng cho tài khoản quản trị). */
+  @IsOptional() @IsBoolean() hrManager?: boolean;
 }
 
 export class ResetPasswordDto {

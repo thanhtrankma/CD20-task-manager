@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Dropdown, Form, Input, Modal, Select, Space, Switch, Table, TreeSelect } from 'antd';
+import { App, Button, Checkbox, Dropdown, Form, Input, Modal, Select, Space, Switch, Table, TreeSelect } from 'antd';
 import { FileSpreadsheet, MoreHorizontal, Plus } from 'lucide-react';
 import dayjs from 'dayjs';
 import { useState } from 'react';
@@ -138,7 +138,17 @@ export function UsersPage() {
               { title: 'Tên đăng nhập', dataIndex: 'username', width: 140 },
               { title: 'Thư nhắc việc', dataIndex: 'email', width: 200, render: (e: string | null) => e ?? '—' },
               { title: 'Đơn vị', width: 200, render: (_, u) => u.unit.name },
-              { title: 'Vai trò', dataIndex: 'role', width: 150, render: (r: Role) => ROLE[r] },
+              {
+                title: 'Vai trò',
+                dataIndex: 'role',
+                width: 150,
+                render: (r: Role, u) => (
+                  <>
+                    {ROLE[r]}
+                    {u.hrManager && <div className="muted">Phụ trách nhân sự</div>}
+                  </>
+                ),
+              },
               {
                 title: '2FA',
                 dataIndex: 'totpEnabled',
@@ -297,6 +307,19 @@ export function UsersPage() {
           </Form.Item>
           <Form.Item name="role" label="Vai trò" rules={[{ required: true }]}>
             <Select options={Object.entries(ROLE).map(([value, label]) => ({ value, label }))} />
+          </Form.Item>
+          <Form.Item noStyle dependencies={['role']}>
+            {({ getFieldValue }) =>
+              getFieldValue('role') !== 'ADMIN' && (
+                <Form.Item
+                  name="hrManager"
+                  valuePropName="checked"
+                  extra="Nhập dữ liệu chấm công, quản lý quỹ phép, xem nghỉ phép và chấm công toàn trường"
+                >
+                  <Checkbox>Phụ trách nhân sự – chấm công</Checkbox>
+                </Form.Item>
+              )
+            }
           </Form.Item>
         </Form>
       </Modal>

@@ -1,6 +1,12 @@
 import {
   Building2,
+  CalendarDays,
   ChartColumn,
+  FileUp,
+  Fingerprint,
+  Settings2,
+  Sheet,
+  UserCog,
   ClipboardList,
   LayoutDashboard,
   LogOut,
@@ -22,6 +28,7 @@ import { ROLE } from '../constants';
 import { CreateTaskModal } from '../pages/tasks/CreateTaskModal';
 import { useChatStream, useChatUnread } from '../pages/chat/stream';
 import { useTaskCounts } from '../pages/tasks/TasksPage';
+import { useLeavePending } from '../utils/leave';
 import { syncPush } from '../push';
 import { ShellContext } from './shell';
 
@@ -40,7 +47,7 @@ function NavGroup({ label, items, onNavigate }: { label: string; items: NavEntry
         <NavLink
           key={to}
           to={to}
-          end={to === '/'}
+          end={to === '/' || to === '/attendance'}
           onClick={onNavigate}
           className={({ isActive }) => (isActive ? 'nav-item active' : 'nav-item')}
         >
@@ -68,6 +75,7 @@ export function MainLayout() {
   const canAssign = me?.role === 'LEADER' || me?.role === 'UNIT_HEAD';
   const counts = useTaskCounts(!!me && !isAdmin);
   const chatUnread = useChatUnread(!!me && !isAdmin);
+  const leavePending = useLeavePending(!!me && canAssign);
   useChatStream(!!me && !isAdmin);
   if (!me) return null;
 
@@ -143,10 +151,34 @@ export function MainLayout() {
                 ]}
               />
             )}
+            {!isAdmin && (canAssign || me.hrManager) && (
+              <NavGroup
+                label="Nhân sự"
+                onNavigate={close}
+                items={[
+                  { to: '/attendance/unit', label: 'Bảng công', icon: Sheet },
+                  ...(me.hrManager
+                    ? [
+                        { to: '/hr/import', label: 'Dữ liệu chấm công', icon: FileUp },
+                        { to: '/hr/staff', label: 'Cán bộ & quỹ phép', icon: UserCog },
+                        { to: '/hr/settings', label: 'Cấu hình', icon: Settings2 },
+                      ]
+                    : []),
+                ]}
+              />
+            )}
             <NavGroup
               label="Cá nhân"
               onNavigate={close}
-              items={[{ to: '/profile', label: 'Tài khoản & nhắc việc', icon: ShieldCheck }]}
+              items={[
+                ...(isAdmin
+                  ? []
+                  : [
+                      { to: '/leave', label: 'Nghỉ phép', icon: CalendarDays, badge: leavePending.data?.count },
+                      { to: '/attendance', label: 'Chấm công', icon: Fingerprint },
+                    ]),
+                { to: '/profile', label: 'Tài khoản & nhắc việc', icon: ShieldCheck },
+              ]}
             />
           </nav>
 

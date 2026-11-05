@@ -233,6 +233,19 @@ Nguyên tắc riêng:
 | DELETE | `/api/chat/messages/:id` | Thu hồi tin của mình (trong 24 giờ) |
 | GET | `/api/chat/stream` | Server-Sent Events: `message`, `message_deleted`, `conversation`, `read` |
 
+## Nghỉ phép, chấm công (bản web)
+
+- [x] Cờ **Phụ trách nhân sự – chấm công** trên tài khoản (quản trị bật): nhập dữ liệu chấm công, quản lý quỹ phép, xem toàn trường. Quản trị vẫn không xem dữ liệu nhân sự
+- [x] Đơn nghỉ: loại nghỉ, khoảng ngày, nửa ngày; tự tính ngày làm việc (bỏ nghỉ hằng tuần, ngày lễ); chặn trùng ngày, chặn khi phép năm không đủ
+- [x] Duyệt theo số ngày: chỉ huy đơn vị (đơn vị không có chỉ huy thì lên cấp trên); quá ngưỡng (mặc định 3 ngày) hoặc người gửi là chỉ huy cấp nhà trường thì lãnh đạo duyệt; không tự duyệt; từ chối phải có lý do; rút đơn, hủy duyệt hoàn ngày phép
+- [x] Quỹ phép theo đối tượng (sĩ quan, QNCN, CNVQP, hợp đồng), chỉnh riêng từng người, cộng phép tồn; khởi tạo năm mới
+- [x] Nhập tệp máy chấm công (Excel, CSV, attlog .dat), chọn cột, bỏ trùng; ghép mã với tài khoản (từng người hoặc từ Excel), lượt chấm cũ tự gắn
+- [x] Tính công từng ngày theo ca (kế thừa ca theo đơn vị cấp trên), ngày lễ, đơn phép đã duyệt; lịch tháng cá nhân, bảng công đơn vị, xuất Excel (ghi nhật ký)
+- [x] Form giao việc ghi chú người đang nghỉ phép trong thời gian đến hạn
+- [ ] Kết nối trực tiếp máy chấm công (ADMS của ZKTeco/Ronald Jack, ISAPI của Hikvision) khi biết loại máy: ghi vào cùng bảng lượt chấm, `source = DEVICE`
+- [ ] Giải trình quên chấm công; ca chia hai buổi (4 lượt chấm); màn hình trên ứng dụng di động
+- [ ] Nhà trường xác nhận số ngày phép năm từng đối tượng (đang để mặc định 12 ngày)
+
 ## Mở rộng (sau thí điểm, theo góp ý của người dùng)
 
 - [ ] Checklist đầu việc (mỗi đầu việc giao được một người), ngày bắt đầu, nhắc tên (@) trong bình luận
