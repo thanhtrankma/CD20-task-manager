@@ -97,7 +97,7 @@ export class LeaveService {
       }
     }
 
-    const approverUnitId = await this.routeUnit(user);
+    const approverUnitId = await this.access.approverUnit(user);
     const threshold = Number(await this.calendar.setting(LEAVE_ESCALATE_DAYS, 3));
     const request = await this.prisma.leaveRequest.create({
       data: {
@@ -140,38 +140,9 @@ export class LeaveService {
     }
   }
 
-  /** Đơn vị có chỉ huy duyệt cấp 1; null khi lên thẳng lãnh đạo nhà trường. */
-  private async routeUnit(user: AuthUser): Promise<number | null> {
-    if (user.role === 'LEADER') return null;
-    const [units, heads] = await Promise.all([
-      this.prisma.unit.findMany({ select: { id: true, parentId: true } }),
-      this.prisma.user.findMany({
-        where: { role: 'UNIT_HEAD', isActive: true, id: { not: user.id } },
-        select: { unitId: true },
-      }),
-    ]);
-    const parent = new Map(units.map((u) => [u.id, u.parentId]));
-    const headed = new Set(heads.map((h) => h.unitId));
-    const seen = new Set<number>();
-    for (let u: number | null | undefined = user.unitId; u != null && !seen.has(u); u = parent.get(u)) {
-      seen.add(u);
-      if (parent.get(u) == null) break; // Cấp nhà trường: lãnh đạo duyệt
-      if (headed.has(u)) return u;
-    }
-    return null;
-  }
-
   /** Người được thông báo có đơn chờ duyệt ở bước hiện tại. */
-  private async approverIds(r: Pick<LeaveRequest, 'status' | 'approverUnitId' | 'userId'>) {
-    const where: Prisma.UserWhereInput =
-      r.status === 'PENDING_UNIT' && r.approverUnitId
-        ? { role: 'UNIT_HEAD', unitId: r.approverUnitId }
-        : { role: 'LEADER' };
-    const users = await this.prisma.user.findMany({
-      where: { ...where, isActive: true, id: { not: r.userId } },
-      select: { id: true },
-    });
-    return users.map((u) => u.id);
+  private approverIds(r: Pick<LeaveRequest, 'status' | 'approverUnitId' | 'userId'>) {
+    return this.access.approverIds(r.status === 'PENDING_UNIT' ? r.approverUnitId : null, r.userId);
   }
 
   private async notifyApprovers(r: LeaveRequest, fullName: string) {
@@ -186,8 +157,8 @@ export class LeaveService {
 
   // ---------- Xem ----------
 
-  private async headUnits(user: AuthUser): Promise<number[]> {
-    return user.role === 'UNIT_HEAD' ? this.units.descendantIds(user.unitId) : [];
+  private headUnits(user: AuthUser) {
+    return this.access.headUnits(user);
   }
 
   private async permissions(user: AuthUser, r: Row) {

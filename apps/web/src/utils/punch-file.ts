@@ -108,12 +108,20 @@ export interface Mapping {
 export interface Punch {
   code: string;
   at: string;
+  /** Thứ tự lượt cùng mã, cùng thời điểm (ra ca 2, vào ca 3 cùng 17:30 khi tệp chỉ ghi đến phút). */
+  seq: number;
 }
 
 /** Chuyển bảng thành lượt chấm theo cách ghép cột; dòng không đọc được đếm vào skipped. */
 export function toPunches(grid: Grid, m: Mapping): { punches: Punch[]; skipped: number[] } {
   const punches: Punch[] = [];
   const skipped: number[] = [];
+  const seen = new Map<string, number>();
+  const push = (code: string, at: string) => {
+    const seq = seen.get(`${code}|${at}`) ?? 0;
+    seen.set(`${code}|${at}`, seq + 1);
+    punches.push({ code, at, seq });
+  };
   grid.forEach((row, i) => {
     if (m.header && i === 0) return;
     const code = cellText(row[m.codeCol] ?? null).replace(/\.0$/, '');
@@ -124,14 +132,14 @@ export function toPunches(grid: Grid, m: Mapping): { punches: Punch[]; skipped: 
     }
     if (!m.timeCols.length) {
       if (date.h === undefined) skipped.push(i + 1);
-      else punches.push({ code, at: iso(date, [date.h, date.mi!, date.s!]) });
+      else push(code, iso(date, [date.h, date.mi!, date.s!]));
       return;
     }
     let any = false;
     for (const c of m.timeCols) {
       const t = parseTimeCell(row[c] ?? null);
       if (t) {
-        punches.push({ code, at: iso(date, t) });
+        push(code, iso(date, t));
         any = true;
       }
     }

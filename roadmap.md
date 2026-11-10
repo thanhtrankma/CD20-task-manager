@@ -242,8 +242,10 @@ Nguyên tắc riêng:
 - [x] Nhập tệp máy chấm công (Excel, CSV, attlog .dat), chọn cột, bỏ trùng; ghép mã với tài khoản (từng người hoặc từ Excel), lượt chấm cũ tự gắn
 - [x] Tính công từng ngày theo ca (kế thừa ca theo đơn vị cấp trên), ngày lễ, đơn phép đã duyệt; lịch tháng cá nhân, bảng công đơn vị, xuất Excel (ghi nhật ký)
 - [x] Form giao việc ghi chú người đang nghỉ phép trong thời gian đến hạn
+- [x] Tính công theo ca: ca 1, ca 2 mỗi ca chấm vào, ra (0,5 công mỗi ca, thiếu lượt vẫn tính nhưng đánh dấu, vắng từng ca); ca 3 làm thêm chấm riêng (6 lần), chỉ tính giờ đã đăng ký, được duyệt, từ 30 phút
+- [x] Đăng ký làm thêm giờ, chỉ huy đơn vị duyệt; bảng công có cột làm thêm
 - [ ] Kết nối trực tiếp máy chấm công (ADMS của ZKTeco/Ronald Jack, ISAPI của Hikvision) khi biết loại máy: ghi vào cùng bảng lượt chấm, `source = DEVICE`
-- [ ] Giải trình quên chấm công; ca chia hai buổi (4 lượt chấm); màn hình trên ứng dụng di động
+- [ ] Giải trình quên chấm công; màn hình trên ứng dụng di động
 - [ ] Nhà trường xác nhận số ngày phép năm từng đối tượng (đang để mặc định 12 ngày)
 
 ## Mở rộng (sau thí điểm, theo góp ý của người dùng)

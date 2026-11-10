@@ -13,7 +13,7 @@ import { PageHeader, Panel } from '../../layouts/shell';
 import { downloadXlsx, headerRow } from '../../utils/excel';
 import { fmtDays } from '../../utils/leave';
 import { buildUnitTree } from '../../utils/units';
-import { dayText, monthRange } from './MyAttendancePage';
+import { dayText, monthRange, sessionText } from './MyAttendancePage';
 
 type Row = UnitAttendance['rows'][number];
 
@@ -90,7 +90,9 @@ export function UnitAttendancePage() {
             title={
               <>
                 <div>{dayjs(day.day).format('DD/MM')}: {dayText(day)}</div>
-                {day.punches.length > 0 && <div>Lượt chấm: {day.punches.join(', ')}</div>}
+                {day.sessions.map((x) => (
+                  <div key={x.key}>{sessionText(x)}</div>
+                ))}
               </>
             }
           >
@@ -105,6 +107,13 @@ export function UnitAttendancePage() {
     { title: 'Thiếu', width: 60, align: 'right', fixed: 'right', render: (_, r) => r.summary.missing || '' },
     { title: 'Vắng', width: 56, align: 'right', fixed: 'right', render: (_, r) => r.summary.absent || '' },
     { title: 'Phép', width: 56, align: 'right', fixed: 'right', render: (_, r) => (r.summary.leave ? fmtDays(r.summary.leave) : '') },
+    {
+      title: 'Làm thêm',
+      width: 84,
+      align: 'right',
+      fixed: 'right',
+      render: (_, r) => (r.summary.overtimeMinutes ? `${fmtDays(Math.round(r.summary.overtimeMinutes / 6) / 10)} giờ` : ''),
+    },
   ];
 
   const exportExcel = async () => {
@@ -113,7 +122,7 @@ export function UnitAttendancePage() {
       // Gọi lại kèm export=1 để máy chủ ghi nhật ký xuất dữ liệu.
       const sheet = await api.get<UnitAttendance>(`/attendance/unit${toQuery({ ...query, export: '1' })}`);
       const dayHeads = sheet.days.map((d) => `${WEEKDAY[d.weekday]} ${d.day.slice(8)}`);
-      const totals = ['Công', 'Muộn (lần)', 'Phút muộn', 'Sớm (lần)', 'Phút sớm', 'Thiếu chấm', 'Vắng', 'Nghỉ phép'];
+      const totals = ['Công', 'Muộn (ca)', 'Phút muộn', 'Sớm (ca)', 'Phút sớm', 'Ca thiếu chấm', 'Ca vắng', 'Nghỉ phép', 'Làm thêm (phút)'];
       await downloadXlsx(`bang-cong-${month.format('YYYY-MM')}.xlsx`, [
         {
           name: 'Bảng công',
@@ -133,25 +142,29 @@ export function UnitAttendancePage() {
                 r.summary.missing,
                 r.summary.absent,
                 r.summary.leave,
+                r.summary.overtimeMinutes,
               ].map((value) => ({ value })),
             ]),
             [],
-            [{ value: 'Ký hiệu: ✓ đủ công · M đi muộn · S về sớm · MS muộn và sớm · ? thiếu lượt chấm · V vắng · P nghỉ phép · ½P nghỉ nửa ngày · L ngày lễ' }],
+            [{ value: 'Ký hiệu: ✓ đủ công · M đi muộn · S về sớm · MS muộn và sớm · ? thiếu lượt chấm · ½V vắng một ca · V vắng · P nghỉ phép · ½P nghỉ nửa ngày · L ngày lễ' }],
           ],
         },
         {
           name: 'Chi tiết',
-          widths: [26, 12, 10, 10, 50],
+          widths: [26, 12, 9, 9, 9, 9, 9, 9, 12, 50],
           data: [
-            headerRow(['Họ tên', 'Ngày', 'Giờ vào', 'Giờ ra', 'Tình trạng']),
+            headerRow(['Họ tên', 'Ngày', 'Vào ca 1', 'Ra ca 1', 'Vào ca 2', 'Ra ca 2', 'Vào ca 3', 'Ra ca 3', 'Làm thêm (phút)', 'Tình trạng']),
             ...sheet.rows.flatMap((r) =>
               r.days
                 .filter((d) => d.status !== 'WEEKEND' && d.status !== 'PENDING')
                 .map((d) => [
                   { value: r.user.fullName },
                   { value: dayjs(d.day).format('DD/MM/YYYY') },
-                  { value: d.in ?? '' },
-                  { value: d.out ?? '' },
+                  ...([1, 2, 3] as const).flatMap((k) => {
+                    const x = d.sessions.find((c) => c.key === k);
+                    return [{ value: x?.in ?? '' }, { value: x?.out ?? '' }];
+                  }),
+                  { value: d.overtime || '' },
                   { value: dayText(d) },
                 ]),
             ),
@@ -208,7 +221,7 @@ export function UnitAttendancePage() {
             locale={{ emptyText: 'Không có cán bộ nào trong phạm vi đã chọn' }}
           />
           <div className="att-legend" style={{ padding: '0 20px 16px' }}>
-            {(['OK', 'LATE', 'EARLY', 'LATE_EARLY', 'MISSING', 'ABSENT', 'LEAVE', 'HOLIDAY'] as const).map((k) => (
+            {(['OK', 'LATE', 'EARLY', 'LATE_EARLY', 'MISSING', 'ABSENT_HALF', 'ABSENT', 'LEAVE', 'HOLIDAY'] as const).map((k) => (
               <span key={k}>
                 <i style={{ background: DAY_STATUS[k].bg, borderColor: DAY_STATUS[k].fg }} />
                 <b style={{ color: DAY_STATUS[k].fg }}>{DAY_STATUS[k].short}</b> {DAY_STATUS[k].label}

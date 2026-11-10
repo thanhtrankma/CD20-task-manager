@@ -62,6 +62,9 @@ export class ShiftDto {
   @IsArray() @ArrayMinSize(1) @ArrayMaxSize(7) @IsInt({ each: true }) @Min(1, { each: true }) @Max(7, { each: true })
   workdays: number[];
   @IsOptional() @IsBoolean() isDefault?: boolean;
+  /** Ca 3 làm thêm từ giờ ra ca 2. */
+  @IsOptional() @IsBoolean() overtimeEnabled?: boolean;
+  @IsOptional() @IsInt() @Min(0) @Max(240) overtimeMinMinutes?: number;
 }
 
 export class UnitShiftDto {

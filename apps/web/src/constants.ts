@@ -1,4 +1,4 @@
-import type { DayPart, DayStatus, LeaveStatus, Priority, Role, TaskStatus, TodoReason } from './api/types';
+import type { DayPart, DayStatus, LeaveStatus, OvertimeStatus, Priority, Role, TaskStatus, TodoReason } from './api/types';
 import type { DueTone } from './utils/due';
 
 export interface Tone {
@@ -72,6 +72,7 @@ export const DAY_STATUS: Record<DayStatus, Tone & { short: string }> = {
   EARLY: { label: 'Về sớm', short: 'S', bg: '#fffbeb', fg: '#b45309' },
   LATE_EARLY: { label: 'Muộn và về sớm', short: 'MS', bg: '#fff7ed', fg: '#c2410c' },
   MISSING: { label: 'Thiếu lượt chấm', short: '?', bg: '#fff7ed', fg: '#c2410c' },
+  ABSENT_HALF: { label: 'Vắng một ca', short: '½V', bg: '#fff1f2', fg: '#be123c' },
   ABSENT: { label: 'Vắng', short: 'V', bg: '#fff1f2', fg: '#be123c' },
   LEAVE: { label: 'Nghỉ phép', short: 'P', bg: '#eff6ff', fg: '#1d4ed8' },
   HOLIDAY: { label: 'Ngày lễ', short: 'L', bg: '#f5f3ff', fg: '#6d28d9' },
@@ -80,3 +81,14 @@ export const DAY_STATUS: Record<DayStatus, Tone & { short: string }> = {
 };
 
 export const WEEKDAY = ['', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+
+export const OVERTIME_STATUS: Record<OvertimeStatus, Tone> = {
+  PENDING: { label: 'Chờ duyệt', bg: '#fffbeb', fg: '#b45309' },
+  APPROVED: { label: 'Đã duyệt', bg: '#ecfdf5', fg: '#047857' },
+  REJECTED: { label: 'Không duyệt', bg: '#fff1f2', fg: '#be123c' },
+  CANCELLED: { label: 'Đã rút', bg: '#f1f5f9', fg: '#64748b' },
+};
+
+/** Phút → "1 giờ 15 phút". */
+export const fmtMinutes = (m: number) =>
+  m >= 60 ? `${Math.floor(m / 60)} giờ${m % 60 ? ` ${m % 60} phút` : ''}` : `${m} phút`;

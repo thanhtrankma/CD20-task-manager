@@ -96,6 +96,14 @@ enum DayPart {
   AFTERNOON
 }
 
+// Đăng ký làm thêm giờ (ca 3): chỉ huy đơn vị duyệt; chỉ giờ đã duyệt mới được tính.
+enum OvertimeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
 enum PunchSource {
   IMPORT // Nhập tệp xuất từ máy hoặc phần mềm chấm công
   DEVICE // Máy chấm công gửi thẳng (làm sau)
@@ -127,13 +135,14 @@ model Unit {
   workShiftId Int?     @map("work_shift_id")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  parent         Unit?          @relation("UnitTree", fields: [parentId], references: [id])
-  children       Unit[]         @relation("UnitTree")
-  users          User[]
-  assignments    TaskAssignee[]
-  chatGroup      Conversation?
-  workShift      WorkShift?     @relation(fields: [workShiftId], references: [id], onDelete: SetNull)
-  leaveApprovals LeaveRequest[]
+  parent            Unit?             @relation("UnitTree", fields: [parentId], references: [id])
+  children          Unit[]            @relation("UnitTree")
+  users             User[]
+  assignments       TaskAssignee[]
+  chatGroup         Conversation?
+  workShift         WorkShift?        @relation(fields: [workShiftId], references: [id], onDelete: SetNull)
+  leaveApprovals    LeaveRequest[]
+  overtimeApprovals OvertimeRequest[]
 
   @@map("units")
 }
@@ -193,6 +202,8 @@ model User {
   leaveUnitDecisions   LeaveRequest[]       @relation("LeaveUnitDecider")
   leaveLeaderDecisions LeaveRequest[]       @relation("LeaveLeaderDecider")
   leaveRevocations     LeaveRequest[]       @relation("LeaveRevoker")
+  overtimeRequests     OvertimeRequest[]    @relation("OvertimeRequester")
+  overtimeDecisions    OvertimeRequest[]    @relation("OvertimeDecider")
   punches              AttendancePunch[]
   attendanceImports    AttendanceImport[]
 
@@ -610,6 +621,31 @@ model LeaveRequest {
   @@map("leave_requests")
 }
 
+model OvertimeRequest {
+  id             Int            @id @default(autoincrement())
+  userId         Int            @map("user_id")
+  date           DateTime       @db.Date
+  /// Khung giờ làm thêm đăng ký, "HH:mm" (bắt đầu từ giờ ra ca 2).
+  startTime      String         @map("start_time") @db.VarChar(5)
+  endTime        String         @map("end_time") @db.VarChar(5)
+  reason         String         @db.Text
+  status         OvertimeStatus @default(PENDING)
+  /// Đơn vị có chỉ huy duyệt; trống: lãnh đạo nhà trường duyệt.
+  approverUnitId Int?           @map("approver_unit_id")
+  decidedById    Int?           @map("decided_by_id")
+  decidedAt      DateTime?      @map("decided_at")
+  decisionNote   String?        @map("decision_note") @db.Text
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  user         User  @relation("OvertimeRequester", fields: [userId], references: [id])
+  decidedBy    User? @relation("OvertimeDecider", fields: [decidedById], references: [id])
+  approverUnit Unit? @relation(fields: [approverUnitId], references: [id])
+
+  @@index([userId, date])
+  @@index([approverUnitId, status])
+  @@map("overtime_requests")
+}
+
 // ---------- Chấm công ----------
 
 model Holiday {
@@ -621,19 +657,23 @@ model Holiday {
 }
 
 model WorkShift {
-  id           Int     @id @default(autoincrement())
-  name         String
-  /// Giờ vào, giờ ra dạng "HH:mm" theo giờ Việt Nam.
-  startTime    String  @map("start_time") @db.VarChar(5)
-  endTime      String  @map("end_time") @db.VarChar(5)
-  /// Nghỉ trưa: mốc tính nửa ngày (nghỉ buổi sáng thì vào trước breakEnd, nghỉ buổi chiều thì ra sau breakStart).
-  breakStart   String  @default("11:30") @map("break_start") @db.VarChar(5)
-  breakEnd     String  @default("13:30") @map("break_end") @db.VarChar(5)
+  id                 Int     @id @default(autoincrement())
+  name               String
+  /// Giờ vào ca 1, giờ ra ca 2, dạng "HH:mm" theo giờ Việt Nam.
+  startTime          String  @map("start_time") @db.VarChar(5)
+  endTime            String  @map("end_time") @db.VarChar(5)
+  /// Ca 1 (sáng): startTime – breakStart; ca 2 (chiều): breakEnd – endTime. Mỗi ca chấm vào, ra.
+  breakStart         String  @default("11:30") @map("break_start") @db.VarChar(5)
+  breakEnd           String  @default("13:30") @map("break_end") @db.VarChar(5)
   /// Số phút cho phép đi muộn, về sớm.
-  graceMinutes Int     @default(5) @map("grace_minutes")
+  graceMinutes       Int     @default(5) @map("grace_minutes")
+  /// Ca làm thêm (ca 3) bắt đầu từ giờ ra ca 2; phải chấm vào, ra riêng và có đăng ký được duyệt.
+  overtimeEnabled    Boolean @default(false) @map("overtime_enabled")
+  /// Làm thêm dưới số phút này thì không tính.
+  overtimeMinMinutes Int     @default(30) @map("overtime_min_minutes")
   /// Ngày làm việc trong tuần: 1 = thứ Hai … 7 = Chủ nhật.
-  workdays     Int[]   @default([1, 2, 3, 4, 5])
-  isDefault    Boolean @default(false) @map("is_default")
+  workdays           Int[]   @default([1, 2, 3, 4, 5])
+  isDefault          Boolean @default(false) @map("is_default")
 
   units Unit[]
 
@@ -645,6 +685,8 @@ model AttendancePunch {
   id        Int         @id @default(autoincrement())
   code      String      @db.VarChar(32)
   punchedAt DateTime    @map("punched_at")
+  /// Thứ tự các lượt cùng mã, cùng thời điểm trong tệp (tệp chỉ ghi đến phút: ra ca 2 và vào ca 3 cùng 17:30).
+  seq       Int         @default(0)
   /// Tài khoản có mã này; trống khi mã chưa được ghép.
   userId    Int?        @map("user_id")
   source    PunchSource @default(IMPORT)
@@ -654,7 +696,7 @@ model AttendancePunch {
   user       User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
   importedBy AttendanceImport? @relation(fields: [importId], references: [id], onDelete: SetNull)
 
-  @@unique([code, punchedAt])
+  @@unique([code, punchedAt, seq])
   @@index([userId, punchedAt])
   @@map("attendance_punches")
 }

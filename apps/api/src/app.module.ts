@@ -14,6 +14,7 @@ import { FilesModule } from './modules/files/files.module';
 import { HrModule } from './modules/hr/hr.module';
 import { LeaveModule } from './modules/leave/leave.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { OvertimeModule } from './modules/overtime/overtime.module';
 import { SubmissionsModule } from './modules/submissions/submissions.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { UnitsModule } from './modules/units/units.module';
@@ -38,6 +39,7 @@ import { PrismaModule } from './prisma/prisma.module';
     HrModule,
     LeaveModule,
     AttendanceModule,
+    OvertimeModule,
   ],
   controllers: [AppController],
   providers: [

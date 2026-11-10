@@ -40,7 +40,17 @@ export async function seedHrDefaults(prisma: Db) {
   }
   if (!(await prisma.workShift.count())) {
     await prisma.workShift.create({
-      data: { name: 'Giờ hành chính', startTime: '07:30', endTime: '16:30', isDefault: true },
+      // Ca 1: 07:00–11:00, ca 2: 13:30–17:30, ca 3 làm thêm từ 17:30 (tính khi từ 30 phút).
+      data: {
+        name: 'Giờ hành chính',
+        startTime: '07:00',
+        breakStart: '11:00',
+        breakEnd: '13:30',
+        endTime: '17:30',
+        overtimeEnabled: true,
+        overtimeMinMinutes: 30,
+        isDefault: true,
+      },
     });
   }
   const year = new Date().getFullYear();

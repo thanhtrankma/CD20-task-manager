@@ -303,7 +303,20 @@ function ShiftPanel() {
         dataSource={shifts}
         columns={[
           { title: 'Ca', render: (_, s) => <>{s.name} {s.isDefault && <Tag color="blue">Mặc định</Tag>}</> },
-          { title: 'Giờ', width: 170, render: (_, s) => `${s.startTime}–${s.endTime} (trưa ${s.breakStart}–${s.breakEnd})` },
+          {
+            title: 'Giờ',
+            width: 230,
+            render: (_, s) => (
+              <>
+                Ca 1 {s.startTime}–{s.breakStart} · Ca 2 {s.breakEnd}–{s.endTime}
+                {s.overtimeEnabled && (
+                  <div className="muted">
+                    Làm thêm từ {s.endTime}, tối thiểu {s.overtimeMinMinutes} phút
+                  </div>
+                )}
+              </>
+            ),
+          },
           { title: 'Ngày làm', width: 150, render: (_, s) => s.workdays.map((d) => WEEKDAY[d]).join(', ') },
           {
             title: '',
@@ -357,17 +370,22 @@ function ShiftPanel() {
 
 interface ShiftValues {
   name: string;
-  hours: [Dayjs, Dayjs];
-  lunch: [Dayjs, Dayjs];
+  ca1: [Dayjs, Dayjs];
+  ca2: [Dayjs, Dayjs];
   graceMinutes: number;
   workdays: number[];
   isDefault: boolean;
+  overtimeEnabled: boolean;
+  overtimeMinMinutes: number;
 }
 
+/** Ca làm việc: ca 1 (sáng), ca 2 (chiều), mỗi ca chấm vào, ra; ca 3 làm thêm từ giờ ra ca 2 (phải đăng ký). */
 function ShiftModal({ shift, onClose }: { shift: WorkShift | 'new' | null; onClose: () => void }) {
   const run = useRun();
   const [form] = Form.useForm<ShiftValues>();
   const s = shift === 'new' || !shift ? null : shift;
+  const overtime = Form.useWatch('overtimeEnabled', form);
+  const ca2 = Form.useWatch('ca2', form) as [Dayjs, Dayjs] | undefined;
   return (
     <Modal open={!!shift} title={s ? `Sửa ca: ${s.name}` : 'Thêm ca làm việc'} okText="Lưu" onOk={() => form.submit()} onCancel={onClose} destroyOnHidden>
       <Form
@@ -375,22 +393,26 @@ function ShiftModal({ shift, onClose }: { shift: WorkShift | 'new' | null; onClo
         layout="vertical"
         initialValues={{
           name: s?.name ?? '',
-          hours: [T(s?.startTime ?? '07:30'), T(s?.endTime ?? '16:30')],
-          lunch: [T(s?.breakStart ?? '11:30'), T(s?.breakEnd ?? '13:30')],
+          ca1: [T(s?.startTime ?? '07:00'), T(s?.breakStart ?? '11:00')],
+          ca2: [T(s?.breakEnd ?? '13:30'), T(s?.endTime ?? '17:30')],
           graceMinutes: s?.graceMinutes ?? 5,
           workdays: s?.workdays ?? [1, 2, 3, 4, 5],
           isDefault: s?.isDefault ?? false,
+          overtimeEnabled: s?.overtimeEnabled ?? true,
+          overtimeMinMinutes: s?.overtimeMinMinutes ?? 30,
         }}
         onFinish={async (v) => {
           const body = {
             name: v.name,
-            startTime: v.hours[0].format('HH:mm'),
-            endTime: v.hours[1].format('HH:mm'),
-            breakStart: v.lunch[0].format('HH:mm'),
-            breakEnd: v.lunch[1].format('HH:mm'),
+            startTime: v.ca1[0].format('HH:mm'),
+            breakStart: v.ca1[1].format('HH:mm'),
+            breakEnd: v.ca2[0].format('HH:mm'),
+            endTime: v.ca2[1].format('HH:mm'),
             graceMinutes: v.graceMinutes,
             workdays: v.workdays,
             isDefault: v.isDefault,
+            overtimeEnabled: v.overtimeEnabled,
+            overtimeMinMinutes: v.overtimeMinMinutes,
           };
           if (await run(() => (s ? api.patch(`/hr/shifts/${s.id}`, body) : api.post('/hr/shifts', body)), 'Đã lưu ca')) onClose();
         }}
@@ -400,19 +422,27 @@ function ShiftModal({ shift, onClose }: { shift: WorkShift | 'new' | null; onClo
         </Form.Item>
         <Row gutter={12}>
           <Col span={12}>
-            <Form.Item name="hours" label="Giờ vào – giờ ra" rules={[{ required: true }]}>
+            <Form.Item name="ca1" label="Ca 1 (sáng): vào – ra" rules={[{ required: true }]}>
               <TimePicker.RangePicker format="HH:mm" minuteStep={5} style={{ width: '100%' }} />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="lunch" label="Nghỉ trưa" rules={[{ required: true }]}>
+            <Form.Item name="ca2" label="Ca 2 (chiều): vào – ra" rules={[{ required: true }]}>
               <TimePicker.RangePicker format="HH:mm" minuteStep={5} style={{ width: '100%' }} />
             </Form.Item>
           </Col>
         </Row>
-        <Form.Item name="graceMinutes" label="Cho phép đi muộn, về sớm (phút)">
+        <Form.Item name="graceMinutes" label="Cho phép đi muộn, về sớm mỗi ca (phút)">
           <InputNumber min={0} max={120} style={{ width: '100%' }} />
         </Form.Item>
+        <Form.Item name="overtimeEnabled" valuePropName="checked" style={{ marginBottom: 8 }}>
+          <Checkbox>Ca 3 làm thêm giờ, từ {ca2?.[1]?.format('HH:mm') ?? 'giờ ra ca 2'} (phải đăng ký, được duyệt)</Checkbox>
+        </Form.Item>
+        {overtime && (
+          <Form.Item name="overtimeMinMinutes" label="Làm thêm tối thiểu (phút): dưới mức này không tính">
+            <InputNumber min={0} max={240} style={{ width: '100%' }} />
+          </Form.Item>
+        )}
         <Form.Item name="workdays" label="Ngày làm việc trong tuần" rules={[{ required: true, type: 'array', min: 1 }]}>
           <Checkbox.Group options={[1, 2, 3, 4, 5, 6, 7].map((d) => ({ value: d, label: WEEKDAY[d] }))} />
         </Form.Item>

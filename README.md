@@ -163,5 +163,6 @@ Nguyên tắc an toàn:
 | GET | `/api/leave/balance?userId=&year=` · `/pending-count` · `/absent?from=&to=` | Quỹ phép năm; số đơn chờ duyệt; người đang nghỉ (gợi ý khi giao việc) |
 | GET | `/api/attendance/me` · `/users/:id` · `/unit?unitId=&from=&to=` | Lịch sử chấm công từng ngày (đủ công, muộn, sớm, thiếu, vắng, nghỉ phép); bảng công đơn vị (tối đa 62 ngày) |
 | POST/GET | `/api/attendance/import` · `/imports` · `/unmatched` | Phụ trách nhân sự nhập lượt chấm từ tệp máy chấm công (bỏ trùng); lịch sử nhập; mã chưa ghép |
+| GET/POST | `/api/overtime?scope=mine\|approve\|unit` · `/:id/decide` · `/:id/cancel` · `/approve-batch` · `/pending-count` | Đăng ký làm thêm giờ (ca 3), chỉ huy đơn vị duyệt; chỉ giờ đã duyệt mới tính công |
 | GET/POST/PATCH | `/api/hr/catalog` · `/holidays` · `/categories` · `/leave-types` · `/shifts` · `/settings` · `/staff` · `/balances` | Danh mục nghỉ phép, chấm công (xem: mọi người; sửa: phụ trách nhân sự), mã chấm công, quỹ phép |
 | GET | `/api/health` | Kiểm tra hoạt động |

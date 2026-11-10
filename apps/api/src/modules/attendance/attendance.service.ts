@@ -41,8 +41,16 @@ export class AttendanceService {
       if (Number.isNaN(at.getTime()) || at.getFullYear() < 2000 || at.getTime() > Date.now() + 86_400_000) {
         throw new BadRequestException({ message: 'Thời điểm chấm không hợp lệ', errors: [{ row: i + 1, message: p.at }] });
       }
-      return { code: p.code.trim(), punchedAt: at };
+      return { code: p.code.trim(), punchedAt: at, seq: p.seq };
     });
+    // Lượt trùng mã, trùng thời điểm (người chấm 6 lần, tệp chỉ ghi đến phút): đánh số để không bị coi là trùng.
+    const seen = new Map<string, number>();
+    for (const r of rows) {
+      const key = `${r.code}|${r.punchedAt.getTime()}`;
+      const n = seen.get(key) ?? 0;
+      seen.set(key, n + 1);
+      r.seq ??= n;
+    }
     const codes = [...new Set(rows.map((r) => r.code))];
     const owners = new Map(
       (await this.prisma.user.findMany({ where: { attendanceCode: { in: codes } }, select: { id: true, attendanceCode: true } })).map(
@@ -108,7 +116,7 @@ export class AttendanceService {
   /** Bảng công từng ngày cho một nhóm người (cùng khoảng ngày). */
   private async compute(users: { id: number; unitId: number }[], from: string, to: string) {
     const ids = users.map((u) => u.id);
-    const [punches, leaves, holidays, shiftOf] = await Promise.all([
+    const [punches, leaves, holidays, shiftOf, overtimes] = await Promise.all([
       this.prisma.attendancePunch.findMany({
         where: { userId: { in: ids }, punchedAt: { gte: localDayStart(from), lt: localDayStart(addDays(to, 1)) } },
         select: { userId: true, punchedAt: true },
@@ -120,7 +128,12 @@ export class AttendanceService {
       }),
       this.calendar.holidays(from, to),
       this.calendar.shiftsByUnit(),
+      this.prisma.overtimeRequest.findMany({
+        where: { userId: { in: ids }, status: 'APPROVED', date: { gte: dateOf(from), lte: dateOf(to) } },
+        select: { userId: true, date: true, startTime: true, endTime: true },
+      }),
     ]);
+    const overtimeOf = new Map(overtimes.map((o) => [`${o.userId}|${ymd(o.date)}`, { start: o.startTime, end: o.endTime }]));
     const byUserDay = new Map<string, number[]>();
     for (const p of punches) {
       const { day, minute } = localDayMinute(p.punchedAt);
@@ -144,7 +157,16 @@ export class AttendanceService {
             return part ? [{ part, type: l.type }] : [];
           });
           const leave = parts.length > 1 ? { part: 'FULL' as const, type: parts[0].type } : parts[0];
-          return calcDay({ day, minutes: byUserDay.get(`${u.id}|${day}`) ?? [], shift, holiday: holidays.get(day), leave, now });
+          const key = `${u.id}|${day}`;
+          return calcDay({
+            day,
+            minutes: byUserDay.get(key) ?? [],
+            shift,
+            holiday: holidays.get(day),
+            leave,
+            overtime: overtimeOf.get(key),
+            now,
+          });
         }),
       });
     }

@@ -2,6 +2,7 @@ import {
   Building2,
   CalendarDays,
   ChartColumn,
+  Clock4,
   FileUp,
   Fingerprint,
   Settings2,
@@ -28,6 +29,7 @@ import { ROLE } from '../constants';
 import { CreateTaskModal } from '../pages/tasks/CreateTaskModal';
 import { useChatStream, useChatUnread } from '../pages/chat/stream';
 import { useTaskCounts } from '../pages/tasks/TasksPage';
+import { useOvertimePending } from '../pages/overtime/OvertimePage';
 import { useLeavePending } from '../utils/leave';
 import { syncPush } from '../push';
 import { ShellContext } from './shell';
@@ -76,6 +78,7 @@ export function MainLayout() {
   const counts = useTaskCounts(!!me && !isAdmin);
   const chatUnread = useChatUnread(!!me && !isAdmin);
   const leavePending = useLeavePending(!!me && canAssign);
+  const overtimePending = useOvertimePending(!!me && canAssign);
   useChatStream(!!me && !isAdmin);
   if (!me) return null;
 
@@ -175,6 +178,7 @@ export function MainLayout() {
                   ? []
                   : [
                       { to: '/leave', label: 'Nghỉ phép', icon: CalendarDays, badge: leavePending.data?.count },
+                      { to: '/overtime', label: 'Làm thêm giờ', icon: Clock4, badge: overtimePending.data?.count },
                       { to: '/attendance', label: 'Chấm công', icon: Fingerprint },
                     ]),
                 { to: '/profile', label: 'Tài khoản & nhắc việc', icon: ShieldCheck },

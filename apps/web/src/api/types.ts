@@ -290,6 +290,9 @@ export interface WorkShift {
   /** 1 = thứ Hai … 7 = Chủ nhật. */
   workdays: number[];
   isDefault: boolean;
+  /** Ca 3 làm thêm từ giờ ra ca 2. */
+  overtimeEnabled: boolean;
+  overtimeMinMinutes: number;
 }
 
 export interface HrCatalog {
@@ -357,11 +360,22 @@ export type DayStatus =
   | 'EARLY'
   | 'LATE_EARLY'
   | 'MISSING'
+  | 'ABSENT_HALF'
   | 'ABSENT'
   | 'LEAVE'
   | 'HOLIDAY'
   | 'WEEKEND'
   | 'PENDING';
+
+export interface AttendanceSession {
+  /** 1, 2: ca chính; 3: làm thêm. */
+  key: 1 | 2 | 3;
+  in?: string;
+  out?: string;
+  late: number;
+  early: number;
+  status: 'OK' | 'MISSING' | 'ABSENT' | 'OFF' | 'PENDING';
+}
 
 export interface AttendanceDay {
   day: string;
@@ -372,9 +386,14 @@ export interface AttendanceDay {
   in?: string;
   out?: string;
   punches: string[];
+  sessions: AttendanceSession[];
   late: number;
   early: number;
   work: number;
+  /** Phút làm thêm được tính (đã duyệt); phút theo lượt chấm ca 3. */
+  overtime: number;
+  overtimeActual: number;
+  overtimeApproved?: { start: string; end: string };
 }
 
 export interface AttendanceSummary {
@@ -387,6 +406,7 @@ export interface AttendanceSummary {
   earlyMinutes: number;
   missing: number;
   absent: number;
+  overtimeMinutes: number;
 }
 
 export interface PersonAttendance {
@@ -433,4 +453,22 @@ export interface AttendanceImport {
   rangeTo: string | null;
   createdAt: string;
   uploadedBy: Person;
+}
+
+export type OvertimeStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+
+export interface OvertimeRequest {
+  id: number;
+  userId: number;
+  date: string;
+  startTime: string;
+  endTime: string;
+  reason: string;
+  status: OvertimeStatus;
+  decisionNote: string | null;
+  decidedAt: string | null;
+  createdAt: string;
+  user: PersonPosition & { unitId: number; unit: { id: number; name: string } };
+  decidedBy: Person | null;
+  permissions: { decide: boolean; cancel: boolean };
 }

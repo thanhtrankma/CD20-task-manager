@@ -9,7 +9,9 @@ import {
   IsString,
   Length,
   Matches,
+  Max,
   MaxLength,
+  Min,
   ValidateNested,
 } from 'class-validator';
 
@@ -20,6 +22,8 @@ export class PunchRow {
   @IsString() @Length(1, 32) code: string;
   /** Thời điểm chấm, ISO 8601 có múi giờ (giao diện đọc giờ trong tệp theo giờ Việt Nam). */
   @IsISO8601({ strict: true }) at: string;
+  /** Thứ tự lượt cùng mã, cùng thời điểm trong tệp (0, 1…); bỏ trống: đếm trong lô. */
+  @IsOptional() @IsInt() @Min(0) @Max(9) seq?: number;
 }
 
 export class ImportPunchesDto {

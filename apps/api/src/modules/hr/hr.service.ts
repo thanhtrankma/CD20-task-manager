@@ -99,7 +99,7 @@ export class HrService {
 
   private checkShift(dto: ShiftDto) {
     if (!(dto.startTime < dto.breakStart && dto.breakStart <= dto.breakEnd && dto.breakEnd < dto.endTime)) {
-      throw new BadRequestException('Giờ phải theo thứ tự: vào < bắt đầu nghỉ trưa ≤ hết nghỉ trưa < ra');
+      throw new BadRequestException('Giờ phải theo thứ tự: vào ca 1 < ra ca 1 ≤ vào ca 2 < ra ca 2');
     }
     return { ...dto, workdays: [...new Set(dto.workdays)].sort() };
   }

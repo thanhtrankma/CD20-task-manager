@@ -18,6 +18,7 @@ import { HrStaffPage } from './pages/hr/HrStaffPage';
 import { LeaveDetailPage } from './pages/leave/LeaveDetailPage';
 import { LeavePage } from './pages/leave/LeavePage';
 import { LoginPage } from './pages/LoginPage';
+import { OvertimePage } from './pages/overtime/OvertimePage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ReportsPage } from './pages/ReportsPage';
 import { TaskDetailPage } from './pages/tasks/TaskDetailPage';
@@ -69,6 +70,7 @@ export function App() {
         <Route path="reports" element={<RequireRole roles={['LEADER', 'UNIT_HEAD']}><ReportsPage /></RequireRole>} />
         <Route path="leave" element={<RequireRole roles={WORKERS}><LeavePage /></RequireRole>} />
         <Route path="leave/:id" element={<RequireRole roles={WORKERS}><LeaveDetailPage /></RequireRole>} />
+        <Route path="overtime" element={<RequireRole roles={WORKERS}><OvertimePage /></RequireRole>} />
         <Route path="attendance" element={<RequireRole roles={WORKERS}><MyAttendancePage /></RequireRole>} />
         <Route path="attendance/users/:id" element={<RequireRole roles={WORKERS}><MyAttendancePage /></RequireRole>} />
         <Route path="attendance/unit" element={<RequireRole roles={WORKERS}><UnitAttendancePage /></RequireRole>} />

@@ -7,11 +7,13 @@ import { PrismaService } from '../../prisma/prisma.service';
 const FALLBACK_SHIFT: WorkShift = {
   id: 0,
   name: 'Giờ hành chính',
-  startTime: '07:30',
-  endTime: '16:30',
-  breakStart: '11:30',
+  startTime: '07:00',
+  endTime: '17:30',
+  breakStart: '11:00',
   breakEnd: '13:30',
   graceMinutes: 5,
+  overtimeEnabled: true,
+  overtimeMinMinutes: 30,
   workdays: [1, 2, 3, 4, 5],
   isDefault: true,
 };

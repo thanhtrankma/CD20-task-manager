@@ -37,15 +37,40 @@ Màn hình tự đoán cột mã, cột ngày, cột giờ; chỉnh lại đư�
 
 ## Cách tính công
 
-- Lượt chấm đầu ngày là giờ vào, lượt cuối là giờ ra.
-- Đi muộn hoặc về sớm khi lệch quá số phút cho phép của ca.
-- Chỉ có một lượt chấm thì tính *Thiếu lượt chấm*.
-- Ngày làm việc không có lượt chấm, không có phép thì tính *Vắng*.
-- Nghỉ nửa ngày theo đơn đã duyệt:
-  - nghỉ buổi sáng: vào trước giờ hết nghỉ trưa là đúng giờ;
-  - nghỉ buổi chiều: ra sau giờ bắt đầu nghỉ trưa là đủ;
-  - ngày đó tính 0,5 công.
-- Đơn vị không chọn ca riêng thì theo ca của đơn vị cấp trên, cuối cùng là ca mặc định.
+Ca mặc định của trường (sửa ở *Cấu hình → Ca làm việc*):
+
+| Ca | Giờ | Chấm công |
+|---|---|---|
+| Ca 1 | 07:00 – 11:00 | Vào, ra |
+| Ca 2 | 13:30 – 17:30 | Vào, ra |
+| Ca 3 (làm thêm) | Từ 17:30 | Vào, ra riêng; phải đăng ký và được duyệt |
+
+Người làm cả 3 ca chấm 6 lần (lúc 17:30 chấm ra ca 2 rồi chấm vào ca 3).
+
+- **Chia lượt chấm theo ca:**
+  - Lượt trước giữa giờ nghỉ trưa (12:15) thuộc ca 1.
+  - Sau đó: 2 lượt đầu là ca 2, các lượt tiếp theo là ca 3.
+- **Ca chính:** mỗi ca có chấm được 0,5 công.
+  - Thiếu một lượt (quên chấm vào hoặc ra) vẫn tính công, nhưng đánh dấu *Thiếu lượt chấm*.
+  - Không chấm lần nào thì tính *Vắng* ca đó.
+  - Đi muộn, về sớm tính riêng từng ca, khi lệch quá số phút cho phép.
+- **Ca 3:** chỉ tính khi có đủ lượt vào và ra, có đăng ký làm thêm đã được duyệt.
+  - Số giờ tính từ 17:30, chỉ phần nằm trong khung giờ đã duyệt.
+  - Dưới 30 phút thì không tính.
+  - Làm thêm không đăng ký vẫn hiện trên lịch nhưng không được tính.
+- **Nghỉ nửa ngày theo đơn đã duyệt:** nghỉ buổi sáng thì chỉ xét ca 2, nghỉ buổi chiều thì chỉ xét ca 1.
+- **Lượt cùng thời điểm:** tệp chỉ ghi đến phút (ra ca 2 và vào ca 3 cùng 17:30) vẫn được giữ đủ 2 lượt. Nhập lại tệp cũ vẫn không sinh trùng.
+- **Ca riêng:** đơn vị không chọn ca riêng thì theo ca của đơn vị cấp trên, cuối cùng là ca mặc định.
+
+## Đăng ký làm thêm giờ
+
+Menu *Cá nhân → Làm thêm giờ*:
+
+- Cán bộ đăng ký ngày, giờ kết thúc, nội dung công việc.
+  - Đăng ký trước tối đa 60 ngày, khai bù tối đa 31 ngày.
+  - Mỗi ngày một đăng ký.
+- Chỉ huy đơn vị duyệt (đơn vị không có chỉ huy thì lên cấp trên; chỉ huy cấp nhà trường thì lãnh đạo duyệt). Không duyệt phải ghi lý do.
+- Người đăng ký rút được khi đang chờ, hoặc đã duyệt nhưng chưa tới ngày.
 
 ## Kết nối trực tiếp máy chấm công (làm sau)
 
